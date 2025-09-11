@@ -3025,29 +3025,72 @@
 
             const handleDragEnd = (e) => {
                 e.target.style.opacity = '1';
+                // 確実にすべての状態をクリア
                 setDraggedTask(null);
                 setDragOverTask(null);
+                
+                // 少し遅延してもう一度クリア（保険）
+                setTimeout(() => {
+                    setDragOverTask(null);
+                }, 50);
             };
 
             const handleDragOver = (e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
+                // ドラッグオーバー中は常にタスクを設定（判定エリアを広げる）
+                const taskElement = e.currentTarget.closest('.task-draggable');
+                if (taskElement && draggedTask) {
+                    const taskId = taskElement.getAttribute('data-task-id');
+                    if (taskId) {
+                        const task = tasks.find(t => t.id === taskId);
+                        if (task && task.id !== draggedTask.id) {
+                            setDragOverTask(task);
+                        }
+                    }
+                }
             };
 
             const handleDragEnter = (e, task) => {
                 e.preventDefault();
-                setDragOverTask(task);
+                if (draggedTask && task.id !== draggedTask.id) {
+                    setDragOverTask(task);
+                }
             };
 
             const handleDragLeave = (e) => {
-                // 子要素への移動でない場合のみdragOverTaskをクリア
-                if (!e.currentTarget.contains(e.relatedTarget)) {
+                // relatedTargetをチェックして、本当に要素から離れたか判定
+                const relatedTarget = e.relatedTarget;
+                const currentTarget = e.currentTarget;
+                
+                // 子要素への移動でない場合、または完全に外に出た場合のみクリア
+                if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
                     setDragOverTask(null);
                 }
             };
 
+            // グローバルなドラッグ終了の監視
+            useEffect(() => {
+                const handleGlobalDragEnd = () => {
+                    setDraggedTask(null);
+                    setDragOverTask(null);
+                };
+
+                // ドキュメント全体でドラッグ終了をキャッチ
+                document.addEventListener('dragend', handleGlobalDragEnd);
+                document.addEventListener('drop', handleGlobalDragEnd);
+
+                return () => {
+                    document.removeEventListener('dragend', handleGlobalDragEnd);
+                    document.removeEventListener('drop', handleGlobalDragEnd);
+                };
+            }, []);
+
             const handleDrop = async (e, targetTask) => {
                 e.preventDefault();
+                
+                // ドロップ後は必ずクリア
+                setDragOverTask(null);
 
                 if (!draggedTask || draggedTask.id === targetTask.id) {
                     return;
@@ -4131,7 +4174,6 @@
                                                         <option value="all">全て ({filteredProjects.length})</option>
                                                         <option value="active">進行中 ({filteredProjects.filter(p => p.status === '進行中').length})</option>
                                                         <option value="completed">完了 ({filteredProjects.filter(p => p.status === '完了').length})</option>
-                                                        <option value="favorite">お気に入り ({filteredProjects.filter(p => isFavorite(p.id)).length})</option>
                                                     </select>
                                                     <div className="custom-select-arrow"></div>
                                                 </div>
@@ -9075,6 +9117,7 @@
                                                                         return (
                                                                             <div
                                                                                 key={task.id}
+                                                                                data-task-id={task.id}
                                                                                 className={`glass-card-dark p-3 rounded-xl transition-all duration-300 hover:shadow-lg border-l-4 relative ${isCompleted ? 'border-green-500' : 'border-gray-500'
                                                                                     } task-draggable ${isDragging ? 'task-dragging' : ''} ${isDragOver ? 'task-drag-over' : ''}`}
                                                                                 draggable={!isCompleted && project.status === '進行中'}
@@ -10007,6 +10050,7 @@
                                                     <option value="all">全て ({filteredProjects.length})</option>
                                                     <option value="active">進行中 ({filteredProjects.filter(p => p.status === '進行中').length})</option>
                                                     <option value="completed">完了 ({filteredProjects.filter(p => p.status === '完了').length})</option>
+                                                    <option value="favorite">お気に入り ({filteredProjects.filter(p => isFavorite(p.id)).length})</option>
                                                 </select>
                                                 <div className="custom-select-arrow"></div>
                                             </div>
@@ -12189,13 +12233,6 @@
                                                     const task = tasks.find(t => t.id === session.taskId);
                                                     const company = companies.find(c => c.id === project?.companyId);
 
-                                                    // デバッグ用 - 一時的に追加
-                                                    if (index === 0) {
-                                                        console.log('Session data:', session);
-                                                        console.log('Project data:', project);
-                                                        console.log('Company data:', company);
-                                                        console.log('Companies array:', companies);
-                                                    }
 
                                                     return (
                                                         <div key={index} className="glass-card-dark p-3 rounded-xl mobile-compact-card">
@@ -12216,10 +12253,17 @@
                                                                         {parseFloat(session.hours).toFixed(1)}h
                                                                     </div>
                                                                     <div className="text-gray-400 mobile-text-xs">
-                                                                        {session.createdAt ? new Date(session.createdAt.toDate()).toLocaleTimeString('ja-JP', {
-                                                                            hour: '2-digit',
-                                                                            minute: '2-digit'
-                                                                        }) : '時刻不明'}
+                                                                        {session.createdAt ?
+                                                                            (typeof session.createdAt.toDate === 'function' ?
+                                                                                new Date(session.createdAt.toDate()).toLocaleTimeString('ja-JP', {
+                                                                                    hour: '2-digit',
+                                                                                    minute: '2-digit'
+                                                                                }) :
+                                                                                new Date(session.createdAt).toLocaleTimeString('ja-JP', {
+                                                                                    hour: '2-digit',
+                                                                                    minute: '2-digit'
+                                                                                })
+                                                                            ) : '時刻不明'}
                                                                     </div>
                                                                 </div>
                                                             </div>
