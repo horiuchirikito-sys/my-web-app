@@ -8982,7 +8982,14 @@
                                                                     )}
                                                                     {project.deadline && (
                                                                         <p className={`mobile-text-sm ${project.status === '完了' ? 'text-green-300' : 'text-red-300'}`}>
-                                                                            締切: {new Date(project.deadline).toLocaleDateString('ja-JP')}
+                                                                            締切: {(() => {
+                                                                                try {
+                                                                                    const date = new Date(project.deadline);
+                                                                                    return isNaN(date.getTime()) ? '日付不明' : date.toLocaleDateString('ja-JP');
+                                                                                } catch (error) {
+                                                                                    return '日付不明';
+                                                                                }
+                                                                            })()}
                                                                         </p>
                                                                     )}
                                                                 </div>
@@ -12253,17 +12260,31 @@
                                                                         {parseFloat(session.hours).toFixed(1)}h
                                                                     </div>
                                                                     <div className="text-gray-400 mobile-text-xs">
-                                                                        {session.createdAt ?
-                                                                            (typeof session.createdAt.toDate === 'function' ?
-                                                                                new Date(session.createdAt.toDate()).toLocaleTimeString('ja-JP', {
+                                                                        {(() => {
+                                                                            if (!session.createdAt) return '時刻不明';
+                                                                            
+                                                                            try {
+                                                                                let date;
+                                                                                if (typeof session.createdAt.toDate === 'function') {
+                                                                                    date = session.createdAt.toDate();
+                                                                                } else {
+                                                                                    date = new Date(session.createdAt);
+                                                                                }
+                                                                                
+                                                                                // 有効な日付かチェック
+                                                                                if (isNaN(date.getTime())) {
+                                                                                    return '時刻不明';
+                                                                                }
+                                                                                
+                                                                                return date.toLocaleTimeString('ja-JP', {
                                                                                     hour: '2-digit',
                                                                                     minute: '2-digit'
-                                                                                }) :
-                                                                                new Date(session.createdAt).toLocaleTimeString('ja-JP', {
-                                                                                    hour: '2-digit',
-                                                                                    minute: '2-digit'
-                                                                                })
-                                                                            ) : '時刻不明'}
+                                                                                });
+                                                                            } catch (error) {
+                                                                                console.warn('日付変換エラー:', error, session.createdAt);
+                                                                                return '時刻不明';
+                                                                            }
+                                                                        })()}
                                                                     </div>
                                                                 </div>
                                                             </div>
