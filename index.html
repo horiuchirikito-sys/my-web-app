@@ -773,7 +773,7 @@
         }
 
         .project-tasks-container {
-            transition: max-height 0.3s ease, padding 0.4s ease;
+            transition: max-height 0.3s ease, padding 0.5s ease;
         }
 
         .project-tasks-container.collapsed {
@@ -792,7 +792,7 @@
 
         /* 会社詳細コンテナのアニメーション */
         .company-details-container {
-            transition: max-height 0.3s ease, padding 0.4s ease;
+            transition: max-height 0.3s ease, padding 0.5s ease;
         }
 
         .company-details-container.collapsed {
@@ -1398,10 +1398,72 @@
             const [allUsers, setAllUsers] = useState([]);
             const [adminUsers, setAdminUsers] = useState([]);
 
+            // ユーザーアイコン色設定用の状態
+            const [showColorPickerModal, setShowColorPickerModal] = useState(false);
+            const [userIconColor, setUserIconColor] = useState('linear-gradient(45deg, #667eea 0%, #764ba2 100%)');
+            const [tempIconColor, setTempIconColor] = useState('linear-gradient(45deg, #667eea 0%, #764ba2 100%)');
+            const [otherUserColors, setOtherUserColors] = useState({}); // 他のユーザーの色設定
+
             // マスターアカウントのUID
             const MASTER_ADMIN_UID = 'fjczVboagRRuUNvWVJ9tOLszEnd2';
 
+            // ユーザーの色を取得する関数
+            const getUserIconColor = (userId) => {
+                if (userId === user?.uid) {
+                    return userIconColor; // 現在のユーザー
+                }
+                return otherUserColors[userId] || 'linear-gradient(45deg, #667eea 0%, #764ba2 100%)'; // 他のユーザーまたはデフォルト
+            };
+
+            // 他のユーザーの色設定を読み込む関数
+            const loadOtherUserColor = async (userId) => {
+                if (userId === user?.uid || otherUserColors[userId]) return; // 現在のユーザーまたは既に読み込み済み
+
+                try {
+                    const userSettingsRef = db.collection('userSettings').doc(userId);
+                    const userSettingsSnapshot = await userSettingsRef.get();
+                    
+                    if (userSettingsSnapshot.exists) {
+                        const settings = userSettingsSnapshot.data();
+                        if (settings.iconColor) {
+                            setOtherUserColors(prev => ({
+                                ...prev,
+                                [userId]: settings.iconColor
+                            }));
+                        }
+                    }
+                } catch (error) {
+                    console.log(`ユーザー${userId}の色設定読み込みエラー:`, error.message);
+                }
+            };
+
+            // 全ユーザーの色設定を一括読み込みする関数
+            const loadAllUserColors = async (currentUser) => {
+                try {
+                    // 全userSettingsを取得
+                    const userSettingsSnapshot = await db.collection('userSettings').get();
+                    const colors = {};
+                    
+                    userSettingsSnapshot.docs.forEach(doc => {
+                        const userId = doc.id;
+                        const data = doc.data();
+                        
+                        // 現在のユーザー以外の色設定を保存
+                        if (userId !== currentUser.uid && data.iconColor) {
+                            colors[userId] = data.iconColor;
+                        }
+                    });
+                    
+                    setOtherUserColors(colors);
+                    console.log('全ユーザー色設定読み込み完了:', Object.keys(colors).length, '件');
+                } catch (error) {
+                    console.log('全ユーザー色設定読み込みエラー:', error.message);
+                }
+            };
+
+
             const autoSaveTimer = useRef(null);
+
 
             // 認証状態の監視
             useEffect(() => {
@@ -1600,8 +1662,30 @@
 
                             // 管理者権限の確認
                             await checkAdminRights(currentUser);
+
+                            // ユーザー設定の読み込み（アイコン色など）
+                            try {
+                                const userSettingsRef = db.collection('userSettings').doc(currentUser.uid);
+                                const userSettingsSnapshot = await userSettingsRef.get();
+
+                                if (userSettingsSnapshot.exists) {
+                                    const settings = userSettingsSnapshot.data();
+                                    if (settings.iconColor) {
+                                        setUserIconColor(settings.iconColor);
+                                        setTempIconColor(settings.iconColor);
+                                    }
+                                } else {
+                                    // 初回のユーザーはデフォルト色を設定
+                                    console.log('ユーザー設定が見つかりません。デフォルト色を使用します。');
+                                }
+                            } catch (error) {
+                                console.log('ユーザー設定読み込みエラー:', error.message);
+                            }
                         }
                     }
+
+                    // 全ユーザーの色設定を読み込み
+                    await loadAllUserColors(currentUser);
 
                     setLastSaved(new Date());
                 } catch (error) {
@@ -1819,7 +1903,7 @@
                                 const elapsedSeconds = Math.floor((Date.now() - activeTimers[taskId].startTime) / 1000);
                                 const minutes = Math.floor(elapsedSeconds / 60);
                                 const seconds = elapsedSeconds % 60;
-                                newDisplays[taskId] = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                                newDisplays[taskId] = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                             }
                         });
                         return newDisplays;
@@ -2341,7 +2425,7 @@
                     showEditCompanyForm || showHoursDetail || showProjectDetail ||
                     showTemplateForm || showChecklistForm || showChecklistModal ||
                     showEditChecklistModal || showHoursInputModal || showLogoutConfirm ||
-                    showWiringModal || showDailyHoursModal || showUserManagementModal;
+                    showWiringModal || showDailyHoursModal || showUserManagementModal || showColorPickerModal;
 
                 if (isModalOpen) {
                     // 現在のスクロール位置を保存
@@ -2374,7 +2458,7 @@
                 showEditCompanyForm, showHoursDetail, showProjectDetail,
                 showTemplateForm, showChecklistForm, showChecklistModal,
                 showEditChecklistModal, showHoursInputModal, showLogoutConfirm,
-                showWiringModal, showDailyHoursModal, showUserManagementModal]);
+                showWiringModal, showDailyHoursModal, showUserManagementModal, showColorPickerModal]);
 
             useEffect(() => {
                 if (projects.length > 0 && tasks.length > 0) {
@@ -2880,7 +2964,7 @@
                             });
                             return {
                                 ...newDisplays,
-                                [taskId]: '0:00'
+                                [taskId]: '00:00'
                             };
                         });
 
@@ -3469,6 +3553,7 @@
                     }
                 }
             };
+
 
             // ガントチャートドラッグスクロールのイベントリスナー設定
             useEffect(() => {
@@ -4172,10 +4257,11 @@
                         <div className="min-h-screen flex items-center justify-center auth-background px-4">
                             <div className="glass-card mobile-compact-card p-6 md:p-8 rounded-2xl w-full max-w-md mx-4">
                                 <div className="text-center">
-                                    <div className="flex justify-center mb-4 mt-4">
-                                        <div style={{ transform: 'scale(3)' }}>
-                                            <MailButton />
-                                        </div>
+                                    <div className="flex justify-center mb-4 mt-2">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="gray" strokeWidth="1.5">
+                                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                                            <path d="M22 7l-10 5L2 7" />
+                                        </svg>
                                     </div>
                                     <h2 className="text-sm md:text-2xl font-bold text-white mb-4">
                                         確認メールを送信しました
@@ -4274,6 +4360,10 @@
                                         value={authForm.email}
                                         onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
                                         className="w-full dark-input rounded-xl px-4 py-3 focus:outline-none text-sm"
+                                        inputMode="email"
+                                        autoComplete="email"
+                                        spellCheck="false"
+                                        autoCorrect="off"
                                         required
                                     />
                                 </div>
@@ -4285,6 +4375,7 @@
                                         value={authForm.password}
                                         onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
                                         className="w-full dark-input rounded-xl px-4 py-3 focus:outline-none text-sm"
+                                        autoComplete="current-password"
                                         required
                                     />
                                 </div>
@@ -4297,6 +4388,7 @@
                                             value={authForm.confirmPassword}
                                             onChange={(e) => setAuthForm({ ...authForm, confirmPassword: e.target.value })}
                                             className="w-full dark-input rounded-xl px-4 py-3 focus:outline-none text-sm"
+                                            autoComplete="new-password"
                                             required
                                         />
                                     </div>
@@ -4322,6 +4414,7 @@
                                     {authMode === 'login' ? '新規登録はこちら' : 'ログインはこちら'}
                                 </button>
                             </div>
+
                         </div>
                     </div>
                 );
@@ -4333,10 +4426,17 @@
                         {/* ヘッダー */}
                         <header className="mb-6 md:mb-8">
                             {/* ユーザー情報と保存状態表示 */}
-                            <div className="glass-card mobile-header rounded-2xl flex flex-row sm:flex-row justify-between items-center text-white gap-3 sm:gap-4">
+                            <div className="glass-card mobile-header rounded-2xl flex flex-row sm:flex-row justify-between items-center text-white gap-3 sm:gap-4 relative">
                                 <div className="flex items-center gap-3 sm:gap-4">
                                     <div className="flex items-center gap-2">
-                                        <div className="user-icon user-icon-small">
+                                        <div
+                                            className="user-icon user-icon-small cursor-pointer hover:opacity-80 transition-opacity duration-200"
+                                            onClick={() => {
+                                                setTempIconColor(userIconColor);
+                                                setShowColorPickerModal(true);
+                                            }}
+                                            style={{ background: userIconColor }}
+                                        >
                                             {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
                                         </div>
                                         <span className="font-medium text-sm sm:text-base">
@@ -4351,7 +4451,39 @@
                                         </span>
                                     )}
                                 </div>
+
+
                                 <div className="flex items-center gap-0.5 ml-6">
+                                    {/* タイマー実行中の表示 */}
+                                    {(() => {
+                                        const activeTimerEntries = Object.entries(activeTimers);
+                                        if (activeTimerEntries.length === 0) return null;
+
+                                        const [taskId, timer] = activeTimerEntries[0]; // 最初のアクティブタイマー
+                                        const task = tasks.find(t => t.id === taskId);
+                                        const project = projects.find(p => p.id === task?.projectId);
+                                        const duration = Date.now() - timer.startTime;
+                                        const minutes = Math.floor(duration / 60000);
+                                        const seconds = Math.floor((duration % 60000) / 1000);
+
+                                        return (
+                                            <div className="flex items-center gap-1 mr-2">
+                                                <span className="text-red-300 font-bold mobile-text-xs whitespace-nowrap">
+                                                    {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+                                                </span>
+                                                <button
+                                                    onClick={() => toggleTimer(taskId)}
+                                                    className="flex items-center justify-center text-white font-normal transition-all duration-300 gradient-red hover:shadow-lg pulse-animation w-5 h-5 rounded-full flex-shrink-0 text-xs"
+                                                    title="タイマー停止"
+                                                >
+                                                    <span style={{ transform: 'translateX(0.2px)' }}>
+                                                        ■
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        );
+                                    })()}
+
                                     {/* 管理アイコンボタン（マスター管理者のみ表示） */}
                                     {isMasterAdmin && (
                                         <button
@@ -4611,7 +4743,10 @@
                                                                             <h3 className="text-base md:text-lg font-bold text-white truncate">{company.name}</h3>
                                                                             <div className="flex flex-wrap gap-2 mt-1">
                                                                                 {company.createdByName && (
-                                                                                    <span className="creator-badge mobile-text-xs">
+                                                                                    <span 
+                                                                                        className="mobile-text-xs text-white font-bold px-2 py-1 rounded-full"
+                                                                                        style={{ background: getUserIconColor(company.createdBy) }}
+                                                                                    >
                                                                                         {company.createdByName}
                                                                                     </span>
                                                                                 )}
@@ -9477,27 +9612,30 @@
                                                         <div className="space-y-3">
                                                             <h5 className="font-bold text-white mobile-text-sm">ユーザー別工数</h5>
                                                             {userHoursList.length > 0 ? (
-                                                                userHoursList.map((user, index) => (
-                                                                    <div key={user.userId} className="glass-card-dark mobile-compact-card rounded-xl">
+                                                                userHoursList.map((userItem, index) => (
+                                                                    <div key={userItem.userId} className="glass-card-dark mobile-compact-card rounded-xl">
                                                                         <div className="flex justify-between items-start mb-3">
                                                                             <div className="flex items-center gap-2">
-                                                                                <div className="user-icon user-icon-small">
-                                                                                    {(user.userName || 'U').charAt(0).toUpperCase()}
+                                                                                <div 
+                                                                                    className="user-icon user-icon-small"
+                                                                                    style={{ background: getUserIconColor(userItem.userId) }}
+                                                                                >
+                                                                                    {(userItem.userName || 'U').charAt(0).toUpperCase()}
                                                                                 </div>
                                                                                 <div>
-                                                                                    <p className="font-bold text-white mobile-text-sm">{user.userName}</p>
+                                                                                    <p className="font-bold text-white mobile-text-sm">{userItem.userName}</p>
                                                                                     <p className="text-gray-400 mobile-text-xs">
-                                                                                        {user.sessions.length}日間で作業
-                                                                                        {user.userId === user.uid && (
+                                                                                        {userItem.sessions.length}日間で作業
+                                                                                        {userItem.userId === user?.uid && (
                                                                                             <span className="text-blue-300 ml-1">（自分）</span>
                                                                                         )}
                                                                                     </p>
                                                                                 </div>
                                                                             </div>
                                                                             <div className="text-right">
-                                                                                <p className="font-bold text-white mobile-text-sm">{user.totalHours.toFixed(1)}h</p>
+                                                                                <p className="font-bold text-white mobile-text-sm">{userItem.totalHours.toFixed(1)}h</p>
                                                                                 <p className="text-gray-400 mobile-text-xs">
-                                                                                    全体の{totalHours > 0 ? ((user.totalHours / totalHours) * 100).toFixed(1) : '0'}%
+                                                                                    全体の{totalHours > 0 ? ((userItem.totalHours / totalHours) * 100).toFixed(1) : '0'}%
                                                                                 </p>
                                                                             </div>
                                                                         </div>
@@ -9508,7 +9646,7 @@
                                                                                 日別の詳細を表示
                                                                             </summary>
                                                                             <div className="mt-2 space-y-1 pl-4">
-                                                                                {user.sessions
+                                                                                {(userItem.sessions || [])
                                                                                     .sort((a, b) => {
                                                                                         const dateA = a.date ? a.date.toDate() : new Date(0);
                                                                                         const dateB = b.date ? b.date.toDate() : new Date(0);
@@ -9636,30 +9774,33 @@
                                                         <div className="space-y-3">
                                                             <h5 className="font-bold text-white mobile-text-sm">ユーザー別工数</h5>
                                                             {userHoursArray.length > 0 ? (
-                                                                userHoursArray.map((user, index) => (
-                                                                    <div key={user.userId} className="glass-card-dark mobile-compact-card rounded-xl">
+                                                                userHoursArray.map((userItem, index) => (
+                                                                    <div key={userItem.userId} className="glass-card-dark mobile-compact-card rounded-xl">
                                                                         <div className="flex justify-between items-start mb-3">
                                                                             <div className="flex items-center gap-2">
-                                                                                <div className="user-icon user-icon-small">
-                                                                                    {(user.userName || 'U').charAt(0).toUpperCase()}
+                                                                                <div 
+                                                                                    className="user-icon user-icon-small"
+                                                                                    style={{ background: getUserIconColor(userItem.userId) }}
+                                                                                >
+                                                                                    {(userItem.userName || 'U').charAt(0).toUpperCase()}
                                                                                 </div>
                                                                                 <div>
-                                                                                    <p className="font-bold text-white mobile-text-sm">{user.userName}</p>
+                                                                                    <p className="font-bold text-white mobile-text-sm">{userItem.userName}</p>
                                                                                     <p className="text-gray-400 mobile-text-xs">
-                                                                                        {user.taskCount}個の工程で作業
-                                                                                        {user.userId === user.uid && (
+                                                                                        {userItem.taskCount}個の工程で作業
+                                                                                        {userItem.userId === user?.uid && (
                                                                                             <span className="text-blue-300 ml-1">（自分）</span>
                                                                                         )}
                                                                                     </p>
                                                                                     <p className="text-gray-400 mobile-text-xs">
-                                                                                        {user.sessions.length}日間で作業
+                                                                                        {userItem.sessions.length}日間で作業
                                                                                     </p>
                                                                                 </div>
                                                                             </div>
                                                                             <div className="text-right">
-                                                                                <p className="font-bold text-white mobile-text-sm">{user.totalHours.toFixed(1)}h</p>
+                                                                                <p className="font-bold text-white mobile-text-sm">{userItem.totalHours.toFixed(1)}h</p>
                                                                                 <p className="text-gray-400 mobile-text-xs">
-                                                                                    {stats.totalActual > 0 ? ((user.totalHours / stats.totalActual) * 100).toFixed(1) : '0'}%
+                                                                                    {stats.totalActual > 0 ? ((userItem.totalHours / stats.totalActual) * 100).toFixed(1) : '0'}%
                                                                                 </p>
                                                                             </div>
                                                                         </div>
@@ -9667,7 +9808,7 @@
                                                                         {/* タスクごとの内訳 */}
                                                                         <div className="space-y-1 mt-3 pl-8">
                                                                             <h6 className="text-gray-300 mobile-text-xs font-medium">工程別内訳</h6>
-                                                                            {Object.entries(user.tasks)
+                                                                            {Object.entries(userItem.tasks || {})
                                                                                 .sort((a, b) => b[1].hours - a[1].hours)
                                                                                 .map(([taskId, taskData]) => (
                                                                                     <div key={taskId} className="flex justify-between items-center mobile-text-xs">
@@ -9684,7 +9825,7 @@
                                                                                 日別の詳細を表示
                                                                             </summary>
                                                                             <div className="mt-2 space-y-1">
-                                                                                {user.sessions
+                                                                                {(userItem.sessions || [])
                                                                                     .sort((a, b) => {
                                                                                         const dateA = a.date ? a.date.toDate() : new Date(0);
                                                                                         const dateB = b.date ? b.date.toDate() : new Date(0);
@@ -9781,7 +9922,10 @@
                                                                                 </span>
                                                                             )}
                                                                             {project.createdByName && (
-                                                                                <span className="creator-badge mobile-text-xs">
+                                                                                <span 
+                                                                                    className="mobile-text-xs text-white font-bold px-2 py-1 rounded-full"
+                                                                                    style={{ background: getUserIconColor(project.createdBy) }}
+                                                                                >
                                                                                     {project.createdByName}
                                                                                 </span>
                                                                             )}
@@ -10033,7 +10177,10 @@
                                                                                                     {task.status}
                                                                                                 </span>
                                                                                                 {task.createdByName && (
-                                                                                                    <span className="creator-badge mobile-text-xs">
+                                                                                                    <span 
+                                                                                                        className="mobile-text-xs text-white font-bold px-2 py-1 rounded-full"
+                                                                                                        style={{ background: getUserIconColor(task.createdBy) }}
+                                                                                                    >
                                                                                                         {task.createdByName}
                                                                                                     </span>
                                                                                                 )}
@@ -10536,7 +10683,16 @@
                                                                         </div>
                                                                     )}
                                                                     {project.createdByName && (
-                                                                        <span className="creator-badge mt-1 whitespace-nowrap overflow-hidden" style={{ fontSize: '8px', display: 'inline-block', width: 'auto', maxWidth: 'fit-content' }}>
+                                                                        <span 
+                                                                            className="mt-1 whitespace-nowrap overflow-hidden text-white font-bold px-2 py-1 rounded-full"
+                                                                            style={{ 
+                                                                                fontSize: '8px', 
+                                                                                display: 'inline-block', 
+                                                                                width: 'auto', 
+                                                                                maxWidth: 'fit-content',
+                                                                                background: getUserIconColor(project.createdBy)
+                                                                            }}
+                                                                        >
                                                                             {project.createdByName}
                                                                         </span>
                                                                     )}
@@ -10774,7 +10930,10 @@
                                                                     )}
                                                                 </div>
                                                                 {project.createdByName && (
-                                                                    <span className="creator-badge text-xs whitespace-nowrap flex-shrink-0">
+                                                                    <span 
+                                                                        className="text-xs whitespace-nowrap flex-shrink-0 text-white font-bold px-2 py-1 rounded-full"
+                                                                        style={{ background: getUserIconColor(project.createdBy) }}
+                                                                    >
                                                                         {project.createdByName}
                                                                     </span>
                                                                 )}
@@ -11037,7 +11196,16 @@
                                                                     )}
                                                                     {project.createdByName && (
                                                                         <div>
-                                                                            <span className="creator-badge" style={{ fontSize: '8px', display: 'inline-block', width: 'auto', maxWidth: 'fit-content' }}>
+                                                                            <span 
+                                                                                className="text-white font-bold px-2 py-1 rounded-full"
+                                                                                style={{ 
+                                                                                    fontSize: '8px', 
+                                                                                    display: 'inline-block', 
+                                                                                    width: 'auto', 
+                                                                                    maxWidth: 'fit-content',
+                                                                                    background: getUserIconColor(project.createdBy)
+                                                                                }}
+                                                                            >
                                                                                 {project.createdByName}
                                                                             </span>
                                                                         </div>
@@ -13317,6 +13485,88 @@
                                         </button>
                                         <button
                                             onClick={() => setShowUserManagementModal(false)}
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                        >
+                                            キャンセル
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ユーザーアイコン色選択モーダル */}
+                        {showColorPickerModal && (
+                            <div className="modal-overlay" onClick={() => {
+                                setTempIconColor(userIconColor); // 一時色を元に戻す
+                                setShowColorPickerModal(false);
+                            }}>
+                                <div className="modal-content glass-card mobile-compact-card rounded-2xl w-full max-w-md mx-4"
+                                    onClick={(e) => e.stopPropagation()}>
+                                    <div className="mb-4">
+                                        <h3 className="text-base font-bold text-white pt-2">
+                                            アイコンの色を選択
+                                        </h3>
+                                    </div>
+
+                                    {/* カラーパレット */}
+                                    <div className="grid grid-cols-6 gap-3 mb-6">
+                                        {[
+                                            // グラデーション（初期色を含む）
+                                            'linear-gradient(45deg, #667eea 0%, #764ba2 100%)',
+                                            'linear-gradient(45deg, #f093fb 0%, #f5576c 100%)',
+                                            'linear-gradient(45deg, #4facfe 0%, #00f2fe 100%)',
+                                            'linear-gradient(45deg, #43e97b 0%, #38f9d7 100%)',
+                                            'linear-gradient(45deg, #fa709a 0%, #fee140 100%)',
+                                            'linear-gradient(45deg, #a8edea 0%, #fed6e3 100%)',
+                                            'linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%)',
+                                            'linear-gradient(45deg, #ff8a80 0%, #ea4c89 100%)',
+                                            // はっきりと違いがわかる基本色
+                                            '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4',
+                                            '#8b5cf6', '#ec4899', '#374151', '#6b7280', '#e5e7eb',
+                                            '#991b1b', '#92400e', '#365314', '#1e40af', '#581c87',
+                                            // 追加色
+                                            '#dc2626'
+                                        ].map(color => (
+                                            <div
+                                                key={color}
+                                                className={`w-10 h-10 rounded-full cursor-pointer transition-all duration-200 hover:scale-110 ${tempIconColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-800' : ''
+                                                    }`}
+                                                style={{ background: color }}
+                                                onClick={() => setTempIconColor(color)}
+                                            />
+                                        ))}
+                                    </div>
+
+
+                                    {/* ボタン */}
+                                    <div className="space-y-2 mb-1.5">
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    // 一時色を実際の色に反映
+                                                    setUserIconColor(tempIconColor);
+
+                                                    // ユーザー設定をFirestoreに保存
+                                                    const userSettingsRef = db.collection('userSettings').doc(user.uid);
+                                                    await userSettingsRef.set({
+                                                        iconColor: tempIconColor,
+                                                        updatedAt: new Date()
+                                                    }, { merge: true });
+                                                    setShowColorPickerModal(false);
+                                                } catch (error) {
+                                                    console.error('色設定の保存に失敗しました:', error);
+                                                    alert('色設定の保存に失敗しました');
+                                                }
+                                            }}
+                                            className="gradient-button text-white px-4 py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-300 text-sm w-full"
+                                        >
+                                            保存
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setTempIconColor(userIconColor); // 一時色を元に戻す
+                                                setShowColorPickerModal(false);
+                                            }}
                                             className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
