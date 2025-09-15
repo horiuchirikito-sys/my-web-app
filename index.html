@@ -105,13 +105,23 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
-        
+
         @-webkit-keyframes spin {
-            0% { -webkit-transform: rotate(0deg); }
-            100% { -webkit-transform: rotate(360deg); }
+            0% {
+                -webkit-transform: rotate(0deg);
+            }
+
+            100% {
+                -webkit-transform: rotate(360deg);
+            }
         }
 
         .glass-card {
@@ -365,6 +375,8 @@
             overflow-y: auto;
             z-index: 10000;
             touch-action: auto !important;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
 
         @keyframes fadeIn {
@@ -1437,7 +1449,7 @@
                 try {
                     const userSettingsRef = db.collection('userSettings').doc(userId);
                     const userSettingsSnapshot = await userSettingsRef.get();
-                    
+
                     if (userSettingsSnapshot.exists) {
                         const settings = userSettingsSnapshot.data();
                         if (settings.iconColor) {
@@ -1458,17 +1470,17 @@
                     // 全userSettingsを取得
                     const userSettingsSnapshot = await db.collection('userSettings').get();
                     const colors = {};
-                    
+
                     userSettingsSnapshot.docs.forEach(doc => {
                         const userId = doc.id;
                         const data = doc.data();
-                        
+
                         // 現在のユーザー以外の色設定を保存
                         if (userId !== currentUser.uid && data.iconColor) {
                             colors[userId] = data.iconColor;
                         }
                     });
-                    
+
                     setOtherUserColors(colors);
                     console.log('全ユーザー色設定読み込み完了:', Object.keys(colors).length, '件');
                 } catch (error) {
@@ -2185,15 +2197,22 @@
                         await deleteFromFirestore('taskTemplates', template.id);
                     }
 
+                    // 関連する配線仕様テンプレートを削除
+                    const relatedWiringTemplates = wiringTemplates.filter(w => w.companyId === companyId);
+                    for (const wiringTemplate of relatedWiringTemplates) {
+                        await deleteFromFirestore('wiringTemplates', wiringTemplate.id);
+                    }
+
                     // ローカルの状態を更新
                     setCompanies(prevCompanies => prevCompanies.filter(c => c.id !== companyId));
                     setChecklistTemplates(prevChecklists => prevChecklists.filter(c => c.companyId !== companyId));
                     setTaskTemplates(prevTemplates => prevTemplates.filter(t => t.companyId !== companyId));
+                    setWiringTemplates(prevWiringTemplates => prevWiringTemplates.filter(w => w.companyId !== companyId));
                     setLastSaved(new Date());
                     return true;
                 }
                 return false;
-            }, [checklistTemplates, taskTemplates]);
+            }, [checklistTemplates, taskTemplates, wiringTemplates]);
 
             // 削除実行
             const handleDelete = useCallback(async () => {
@@ -2598,6 +2617,14 @@
                         await deleteFromFirestore('workSessions', session.id);
                     }
 
+                    // 関連するprojectWiringsも削除
+                    if (projectWirings[projectId]) {
+                        const wiringId = projectWirings[projectId].id;
+                        if (wiringId) {
+                            await deleteFromFirestore('projectWirings', wiringId);
+                        }
+                    }
+
                     // ローカルの状態を更新
                     setProjects(prevProjects => prevProjects.filter(p => p.id !== projectId));
                     setTasks(prevTasks => prevTasks.filter(t => String(t.projectId) !== String(projectId)));
@@ -2612,11 +2639,25 @@
                         return newChecklists;
                     });
 
+                    // 関連するprojectWiringsもローカル状態から削除
+                    setProjectWirings(prev => {
+                        const newWirings = { ...prev };
+                        delete newWirings[projectId];
+                        return newWirings;
+                    });
+
+                    // お気に入りからも削除
+                    const relatedFavorites = favorites.filter(fav => String(fav.projectId) === String(projectId));
+                    for (const favorite of relatedFavorites) {
+                        await deleteFromFirestore('favorites', favorite.id);
+                    }
+                    setFavorites(prev => prev.filter(fav => String(fav.projectId) !== String(projectId)));
+
                     setLastSaved(new Date());
                     return true;
                 }
                 return false;
-            }, [tasks, workSessions, projectChecklists]);
+            }, [tasks, workSessions, projectChecklists, projectWirings, favorites]);
 
             const createTask = async () => {
                 if (!newTask.title.trim()) {
@@ -4256,17 +4297,17 @@
             if (loading) {
                 return (
                     <div className="min-h-screen flex items-center justify-center auth-background px-4">
-                        <div 
+                        <div
                             className="glass-card mobile-compact-card rounded-2xl text-center w-full max-w-md mx-4"
-                            style={{ 
-                                paddingTop: '60px', 
-                                paddingBottom: '80px', 
-                                paddingLeft: '24px', 
-                                paddingRight: '24px' 
+                            style={{
+                                paddingTop: '40px',
+                                paddingBottom: '50px',
+                                paddingLeft: '24px',
+                                paddingRight: '24px'
                             }}
                         >
                             <div className="text-white mobile-text-base md:text-xl mb-4">読み込み中...</div>
-                            <div 
+                            <div
                                 className="mx-auto"
                                 style={{
                                     width: '32px',
@@ -4502,8 +4543,21 @@
 
                                         return (
                                             <div className="flex items-center gap-1 mr-2">
-                                                <span className="text-red-300 font-bold mobile-text-xs whitespace-nowrap">
-                                                    {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+                                                <span className="text-white text-xs whitespace-nowrap">
+                                                    {project && (
+                                                        <>
+                                                            <span className="text-gray-300 font-bold">
+                                                                {project.name.length > 3
+                                                                    ? project.name.substring(0, 3)
+                                                                    : project.name}
+
+                                                            </span>
+                                                            <span className="mx-1"> </span>
+                                                        </>
+                                                    )}
+                                                    <span className="text-red-300 font-bold mr-1">
+                                                        {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+                                                    </span>
                                                 </span>
                                                 <button
                                                     onClick={() => toggleTimer(taskId)}
@@ -4522,8 +4576,8 @@
                                     {isMasterAdmin && (
                                         <button
                                             onClick={async () => {
-                                                setShowUserManagementModal(true);
                                                 await loadAllUsers();
+                                                setShowUserManagementModal(true);
                                             }}
                                             className="p-2 text-gray-400 hover:text-white transition-colors duration-200 flex items-center justify-center"
                                             title="ユーザー管理"
@@ -4777,7 +4831,7 @@
                                                                             <h3 className="text-base md:text-lg font-bold text-white truncate">{company.name}</h3>
                                                                             <div className="flex flex-wrap gap-2 mt-1">
                                                                                 {company.createdByName && (
-                                                                                    <span 
+                                                                                    <span
                                                                                         className="mobile-text-xs text-white font-bold px-2 py-1 rounded-full"
                                                                                         style={{ background: getUserIconColor(company.createdBy) }}
                                                                                     >
@@ -4845,98 +4899,6 @@
 
                                                         {/* 詳細内容（折りたたみ可能） */}
                                                         <div className={`company-details-container mobile-compact-card space-y-3 ${!isCollapsed ? 'expanded' : 'collapsed'}`}>
-                                                            {/* チェックリストセクション */}
-                                                            <div className="border-t border-gray-600 pt-4">
-                                                                <div className="flex justify-between items-center mb-3">
-                                                                    <h5 className="mobile-text-sm font-bold text-white">検査リストテンプレート</h5>
-                                                                    {isAdmin && (
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setNewChecklist({
-                                                                                    name: '',
-                                                                                    companyId: company.id,
-                                                                                    checkType: 'single',
-                                                                                    categories: [
-                                                                                        {
-                                                                                            name: '',
-                                                                                            items: [{ name: '', description: '' }]
-                                                                                        }
-                                                                                    ]
-                                                                                });
-                                                                                setEditingChecklist(null);
-                                                                                setShowChecklistForm(true);
-                                                                            }}
-                                                                            className="flex items-center justify-center text-white font-medium transition-all duration-300 gradient-button hover:shadow-lg w-5 h-5 rounded-full flex-shrink-0 text-xs"
-                                                                            disabled={checklistTemplates.filter(c => c.companyId === company.id).length >= 10}
-                                                                        >
-                                                                            <span style={{ transform: 'translateY(0.3px) translateX(0.2px)' }}>＋</span>
-                                                                        </button>
-                                                                    )}
-                                                                </div>
-
-                                                                {checklistTemplates.filter(c => c.companyId === company.id).length > 0 ? (
-                                                                    <div className="grid grid-cols-1 gap-3">
-                                                                        {checklistTemplates.filter(c => c.companyId === company.id).map(checklist => (
-                                                                            <div key={checklist.id} className="glass-card-dark px-3 pt-3 pb-2 rounded-lg">
-                                                                                {/* アクションボタン（左端） */}
-                                                                                <div className="flex gap-2 mb-1 -mt-2" style={{ minHeight: '22px' }}>
-                                                                                    {isAdmin && (
-                                                                                        <>
-                                                                                            <DeleteButton
-                                                                                                onClick={() => openDeleteConfirm('checklist', checklist.id, checklist.name)} />
-                                                                                            <EditButton
-                                                                                                onClick={() => {
-                                                                                                    setEditingChecklist(checklist);
-                                                                                                    setNewChecklist({
-                                                                                                        name: checklist.name,
-                                                                                                        companyId: checklist.companyId,
-                                                                                                        checkType: checklist.checkType || 'single',
-                                                                                                        categories: JSON.parse(JSON.stringify(checklist.categories || []))
-                                                                                                    });
-                                                                                                    setShowChecklistForm(true);
-                                                                                                }} />
-                                                                                        </>
-                                                                                    )}
-                                                                                </div>
-                                                                                {/* 区切りライン */}
-                                                                                <div className="mb-2 -mx-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}></div>
-                                                                                <div className="space-y-1">
-                                                                                    <div className="font-bold text-white mobile-text-xs mt-1">
-                                                                                        {checklist.name}
-                                                                                    </div>
-                                                                                    <div className="flex justify-between items-center -mb-1">
-                                                                                        <div className="text-gray-400 mobile-text-xs">
-                                                                                            カテゴリ数: {checklist.categories?.length || 0} /
-                                                                                            項目数: {checklist.categories?.reduce((sum, cat) => sum + (cat.items?.length || 0), 0) || 0}
-                                                                                        </div>
-                                                                                        <div className="text-gray-400 mobile-text-xs">
-                                                                                            最終更新: {(() => {
-                                                                                                if (!checklist.updatedAt) return '時刻不明';
-                                                                                                try {
-                                                                                                    const date = checklist.updatedAt.toDate ?
-                                                                                                        new Date(checklist.updatedAt.toDate()) :
-                                                                                                        new Date(checklist.updatedAt);
-                                                                                                    return isNaN(date.getTime()) ? '時刻不明' : date.toLocaleDateString('ja-JP');
-                                                                                                } catch {
-                                                                                                    return '時刻不明';
-                                                                                                }
-                                                                                            })()}
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                ) : (
-                                                                    <p className="text-gray-500 mobile-text-sm text-center py-4">
-                                                                        検査リストテンプレートがまだ作成されていません
-                                                                    </p>
-                                                                )}
-
-                                                                <p className="mobile-text-xs text-gray-500 text-right mt-2">
-                                                                    {checklistTemplates.filter(c => c.companyId === company.id).length}/10 作成済み
-                                                                </p>
-                                                            </div>
 
                                                             {/* タスクテンプレートセクション */}
                                                             <div className="border-t border-gray-600 pt-4">
@@ -5173,6 +5135,99 @@
 
                                                                 <p className="mobile-text-xs text-gray-500 text-right mt-2">
                                                                     {wiringTemplates.filter(w => w.companyId === company.id).length}/10 作成済み
+                                                                </p>
+                                                            </div>
+
+                                                            {/* チェックリストセクション */}
+                                                            <div className="border-t border-gray-600 pt-4">
+                                                                <div className="flex justify-between items-center mb-3">
+                                                                    <h5 className="mobile-text-sm font-bold text-white">検査リストテンプレート</h5>
+                                                                    {isAdmin && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setNewChecklist({
+                                                                                    name: '',
+                                                                                    companyId: company.id,
+                                                                                    checkType: 'single',
+                                                                                    categories: [
+                                                                                        {
+                                                                                            name: '',
+                                                                                            items: [{ name: '', description: '' }]
+                                                                                        }
+                                                                                    ]
+                                                                                });
+                                                                                setEditingChecklist(null);
+                                                                                setShowChecklistForm(true);
+                                                                            }}
+                                                                            className="flex items-center justify-center text-white font-medium transition-all duration-300 gradient-button hover:shadow-lg w-5 h-5 rounded-full flex-shrink-0 text-xs"
+                                                                            disabled={checklistTemplates.filter(c => c.companyId === company.id).length >= 10}
+                                                                        >
+                                                                            <span style={{ transform: 'translateY(0.3px) translateX(0.2px)' }}>＋</span>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+
+                                                                {checklistTemplates.filter(c => c.companyId === company.id).length > 0 ? (
+                                                                    <div className="grid grid-cols-1 gap-3">
+                                                                        {checklistTemplates.filter(c => c.companyId === company.id).map(checklist => (
+                                                                            <div key={checklist.id} className="glass-card-dark px-3 pt-3 pb-2 rounded-lg">
+                                                                                {/* アクションボタン（左端） */}
+                                                                                <div className="flex gap-2 mb-1 -mt-2" style={{ minHeight: '22px' }}>
+                                                                                    {isAdmin && (
+                                                                                        <>
+                                                                                            <DeleteButton
+                                                                                                onClick={() => openDeleteConfirm('checklist', checklist.id, checklist.name)} />
+                                                                                            <EditButton
+                                                                                                onClick={() => {
+                                                                                                    setEditingChecklist(checklist);
+                                                                                                    setNewChecklist({
+                                                                                                        name: checklist.name,
+                                                                                                        companyId: checklist.companyId,
+                                                                                                        checkType: checklist.checkType || 'single',
+                                                                                                        categories: JSON.parse(JSON.stringify(checklist.categories || []))
+                                                                                                    });
+                                                                                                    setShowChecklistForm(true);
+                                                                                                }} />
+                                                                                        </>
+                                                                                    )}
+                                                                                </div>
+                                                                                {/* 区切りライン */}
+                                                                                <div className="mb-2 -mx-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}></div>
+                                                                                <div className="space-y-1">
+                                                                                    <div className="font-bold text-white mobile-text-xs mt-1">
+                                                                                        {checklist.name}
+                                                                                    </div>
+                                                                                    <div className="flex justify-between items-center -mb-1">
+                                                                                        <div className="text-gray-400 mobile-text-xs">
+                                                                                            カテゴリ数: {checklist.categories?.length || 0} /
+                                                                                            項目数: {checklist.categories?.reduce((sum, cat) => sum + (cat.items?.length || 0), 0) || 0}
+                                                                                        </div>
+                                                                                        <div className="text-gray-400 mobile-text-xs">
+                                                                                            最終更新: {(() => {
+                                                                                                if (!checklist.updatedAt) return '時刻不明';
+                                                                                                try {
+                                                                                                    const date = checklist.updatedAt.toDate ?
+                                                                                                        new Date(checklist.updatedAt.toDate()) :
+                                                                                                        new Date(checklist.updatedAt);
+                                                                                                    return isNaN(date.getTime()) ? '時刻不明' : date.toLocaleDateString('ja-JP');
+                                                                                                } catch {
+                                                                                                    return '時刻不明';
+                                                                                                }
+                                                                                            })()}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-gray-500 mobile-text-sm text-center py-4">
+                                                                        検査リストテンプレートがまだ作成されていません
+                                                                    </p>
+                                                                )}
+
+                                                                <p className="mobile-text-xs text-gray-500 text-right mt-2">
+                                                                    {checklistTemplates.filter(c => c.companyId === company.id).length}/10 作成済み
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -5596,7 +5651,7 @@
                                     style={{ maxHeight: '90vh', overflowY: 'auto' }}>
                                     <div className="mb-4">
                                         <h3 className="text-base font-bold text-white pt-2">
-                                            {editingTemplate ? '工程テンプレート編集' : '新規工程テンプレート作成'}
+                                            {editingTemplate ? '工程テンプレート編集' : '工程テンプレート作成'}
                                         </h3>
                                     </div>
 
@@ -9650,7 +9705,7 @@
                                                                     <div key={userItem.userId} className="glass-card-dark mobile-compact-card rounded-xl">
                                                                         <div className="flex justify-between items-start mb-3">
                                                                             <div className="flex items-center gap-2">
-                                                                                <div 
+                                                                                <div
                                                                                     className="user-icon user-icon-small"
                                                                                     style={{ background: getUserIconColor(userItem.userId) }}
                                                                                 >
@@ -9812,7 +9867,7 @@
                                                                     <div key={userItem.userId} className="glass-card-dark mobile-compact-card rounded-xl">
                                                                         <div className="flex justify-between items-start mb-3">
                                                                             <div className="flex items-center gap-2">
-                                                                                <div 
+                                                                                <div
                                                                                     className="user-icon user-icon-small"
                                                                                     style={{ background: getUserIconColor(userItem.userId) }}
                                                                                 >
@@ -9956,7 +10011,7 @@
                                                                                 </span>
                                                                             )}
                                                                             {project.createdByName && (
-                                                                                <span 
+                                                                                <span
                                                                                     className="mobile-text-xs text-white font-bold px-2 py-1 rounded-full"
                                                                                     style={{ background: getUserIconColor(project.createdBy) }}
                                                                                 >
@@ -10211,7 +10266,7 @@
                                                                                                     {task.status}
                                                                                                 </span>
                                                                                                 {task.createdByName && (
-                                                                                                    <span 
+                                                                                                    <span
                                                                                                         className="mobile-text-xs text-white font-bold px-2 py-1 rounded-full"
                                                                                                         style={{ background: getUserIconColor(task.createdBy) }}
                                                                                                     >
@@ -10243,7 +10298,7 @@
                                                                                 <div className="absolute top-2 right-2 flex items-center gap-2 z-10 mr-1">
                                                                                     {/* タイマー表示（タイマーボタンの左） */}
                                                                                     {isTimerActive && timerDisplays[task.id] && (
-                                                                                        <span className="text-red-300 font-bold mobile-text-xs whitespace-nowrap">
+                                                                                        <span className="text-red-300 font-bold text-xs whitespace-nowrap">
                                                                                             {timerDisplays[task.id]}
                                                                                         </span>
                                                                                     )}
@@ -10717,12 +10772,12 @@
                                                                         </div>
                                                                     )}
                                                                     {project.createdByName && (
-                                                                        <span 
+                                                                        <span
                                                                             className="mt-1 whitespace-nowrap overflow-hidden text-white font-bold px-2 py-1 rounded-full"
-                                                                            style={{ 
-                                                                                fontSize: '8px', 
-                                                                                display: 'inline-block', 
-                                                                                width: 'auto', 
+                                                                            style={{
+                                                                                fontSize: '8px',
+                                                                                display: 'inline-block',
+                                                                                width: 'auto',
                                                                                 maxWidth: 'fit-content',
                                                                                 background: getUserIconColor(project.createdBy)
                                                                             }}
@@ -10964,7 +11019,7 @@
                                                                     )}
                                                                 </div>
                                                                 {project.createdByName && (
-                                                                    <span 
+                                                                    <span
                                                                         className="text-xs whitespace-nowrap flex-shrink-0 text-white font-bold px-2 py-1 rounded-full"
                                                                         style={{ background: getUserIconColor(project.createdBy) }}
                                                                     >
@@ -11230,12 +11285,12 @@
                                                                     )}
                                                                     {project.createdByName && (
                                                                         <div>
-                                                                            <span 
+                                                                            <span
                                                                                 className="text-white font-bold px-2 py-1 rounded-full"
-                                                                                style={{ 
-                                                                                    fontSize: '8px', 
-                                                                                    display: 'inline-block', 
-                                                                                    width: 'auto', 
+                                                                                style={{
+                                                                                    fontSize: '8px',
+                                                                                    display: 'inline-block',
+                                                                                    width: 'auto',
                                                                                     maxWidth: 'fit-content',
                                                                                     background: getUserIconColor(project.createdBy)
                                                                                 }}
@@ -13456,7 +13511,7 @@
                                                                 <label className="flex items-center cursor-pointer">
                                                                     <input
                                                                         type="checkbox"
-                                                                        checked={user.isAdmin === true || adminUsers.includes(user.id)}
+                                                                        checked={adminUsers.includes(user.id)}
                                                                         onChange={(e) => {
                                                                             const isChecked = e.target.checked;
                                                                             if (isChecked) {
