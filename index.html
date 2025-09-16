@@ -1116,6 +1116,7 @@
                 actualHours: '',
                 checklistTemplateId: ''  // 追加
             });
+            // タイマー状態
             const [activeTimers, setActiveTimers] = useState({});
             const [showNewProjectForm, setShowNewProjectForm] = useState(false);
             const [showNewTaskForm, setShowNewTaskForm] = useState(false);
@@ -1383,6 +1384,90 @@
 
             // タイマー経過時間用
             const [timerDisplays, setTimerDisplays] = useState({});
+
+
+            // activeTimersをFirestoreに保存
+            const [isTimerDataLoaded, setIsTimerDataLoaded] = useState(false);
+
+            useEffect(() => {
+                console.log('activeTimers changed:', activeTimers, 'user:', user?.uid, 'loaded:', isTimerDataLoaded);
+                if (user && Object.keys(activeTimers).length > 0) {
+                    console.log('Saving activeTimers to Firestore');
+                    const timerData = {
+                        userId: user.uid,
+                        activeTimers: activeTimers,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    // setかaddかを判断するため直接Firestoreを操作
+                    db.collection('activeTimers').doc(user.uid).set(timerData, { merge: true })
+                        .then(() => {
+                            console.log('activeTimers保存成功');
+                        })
+                        .catch(error => {
+                            console.error('activeTimers保存エラー:', error);
+                        });
+                } else if (user && Object.keys(activeTimers).length === 0 && isTimerDataLoaded && typeof activeTimers === 'object' && activeTimers !== null) {
+                    // タイマーが全て停止された場合はドキュメントを削除（データ読み込み完了後のみ）
+                    console.log('Deleting activeTimers from Firestore - activeTimers:', activeTimers);
+                    db.collection('activeTimers').doc(user.uid).delete().catch(error => {
+                        console.error('Failed to delete active timers:', error);
+                    });
+                }
+            }, [activeTimers, user, isTimerDataLoaded]);
+
+            // Firestoreからタイマー状態を復元
+            useEffect(() => {
+                console.log('Attempting to restore activeTimers for user:', user?.uid);
+                if (user) {
+                    db.collection('activeTimers').doc(user.uid).get()
+                        .then(doc => {
+                            console.log('activeTimers document exists:', doc.exists);
+                            if (doc.exists) {
+                                const data = doc.data();
+                                console.log('activeTimers data from Firestore:', data);
+                                if (data.activeTimers) {
+                                    console.log('Restoring activeTimers:', data.activeTimers);
+                                    setActiveTimers(data.activeTimers);
+                                    setIsTimerDataLoaded(true);
+                                } else {
+                                    console.log('No activeTimers in document');
+                                    setIsTimerDataLoaded(true);
+                                }
+                            } else {
+                                console.log('No activeTimers document found');
+                                setIsTimerDataLoaded(true);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Failed to load active timers from Firestore:', error);
+                        });
+                }
+            }, [user]);
+
+            // アプリ起動時にアクティブなタイマーの表示を復元
+            useEffect(() => {
+                const updateTimerDisplays = () => {
+                    setTimerDisplays(prev => {
+                        const newDisplays = { ...prev };
+                        Object.keys(activeTimers).forEach(taskId => {
+                            if (activeTimers[taskId]) {
+                                const elapsedSeconds = Math.floor((Date.now() - activeTimers[taskId].startTime) / 1000);
+                                const minutes = Math.floor(elapsedSeconds / 60);
+                                const seconds = elapsedSeconds % 60;
+                                newDisplays[taskId] = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                            }
+                        });
+                        return newDisplays;
+                    });
+                };
+
+                // 初回実行
+                if (Object.keys(activeTimers).length > 0) {
+                    updateTimerDisplays();
+                }
+            }, [activeTimers]);  // activeTimersが変更された時に実行
+
 
             // ドラッグアンドドロップ用の状態
             const [draggedTask, setDraggedTask] = useState(null);
@@ -1854,6 +1939,7 @@
 
             // Firestoreへのデータ保存（共有データとして作成者情報付きで保存）
             const saveToFirestore = async (collection, data, docId = null) => {
+                console.log('saveToFirestore called:', { collection, data, docId, user: user?.uid });
                 if (!user) {
                     console.error('ユーザーがログインしていません');
                     return null;
@@ -2859,6 +2945,7 @@
 
             // タイマー開始/停止
             const toggleTimer = async (taskId) => {
+                console.log('toggleTimer called for taskId:', taskId);
                 setActiveTimers(prev => {
                     const newTimers = { ...prev };
                     if (newTimers[taskId]) {
@@ -3026,6 +3113,7 @@
 
                         newTimers[taskId] = { startTime: Date.now() };
                     }
+                    console.log('toggleTimer newTimers:', newTimers);
                     return newTimers;
                 });
             };
