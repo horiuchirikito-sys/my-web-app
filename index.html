@@ -1063,6 +1063,8 @@
             const [emailVerificationSent, setEmailVerificationSent] = useState(false);
             const [waitingForVerification, setWaitingForVerification] = useState(false);
             const [isRegistering, setIsRegistering] = useState(false); // ← この行を追加
+            const [resendingEmail, setResendingEmail] = useState(false);
+            const [lastResendTime, setLastResendTime] = useState(null);
             const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
 
             // 既存の状態
@@ -1133,16 +1135,16 @@
             const toggleGanttProjectNameWidth = useCallback((isMobile) => {
                 setGanttProjectNameWidth(prev => {
                     if (isMobile) {
-                        // モバイル: 120px ⇄ 60px
+                        // モバイル: 120px ⇄ 0px（完全に非表示）
                         return {
                             ...prev,
-                            mobile: prev.mobile === 120 ? 60 : 120
+                            mobile: prev.mobile === 120 ? 0 : 120
                         };
                     } else {
-                        // デスクトップ: 256px ⇄ 120px
+                        // デスクトップ: 256px ⇄ 0px（完全に非表示）
                         return {
                             ...prev,
-                            desktop: prev.desktop === 256 ? 120 : 256
+                            desktop: prev.desktop === 256 ? 0 : 256
                         };
                     }
                 });
@@ -1864,6 +1866,49 @@
                     console.error('新規登録エラー:', error);
                     setAuthError(getAuthErrorMessage(error.code));
                     setIsRegistering(false); // エラー時もフラグをリセット
+                }
+            };
+
+            // メール確認の再送信
+            const handleResendVerificationEmail = async () => {
+                // 60秒経過チェック
+                if (lastResendTime && Date.now() - lastResendTime < 60000) {
+                    const remainingTime = Math.ceil((60000 - (Date.now() - lastResendTime)) / 1000);
+                    setAuthError(`再送信まであと${remainingTime}秒お待ちください`);
+                    return;
+                }
+
+                try {
+                    setResendingEmail(true);
+                    setAuthError('');
+
+                    // 現在のユーザーを取得
+                    const currentUser = auth.currentUser;
+                    if (!currentUser) {
+                        setAuthError('ユーザー情報が見つかりません。再度ログインしてください。');
+                        return;
+                    }
+
+                    // 確認メールを再送信
+                    const actionCodeSettings = {
+                        // 本番環境と開発環境を自動判定
+                        url: window.location.href.includes('127.0.0.1')
+                            ? 'http://127.0.0.1:5500/index.html'
+                            : window.location.origin,
+                        handleCodeInApp: false
+                    };
+
+                    await currentUser.sendEmailVerification(actionCodeSettings);
+
+                    // 最後の送信時刻を記録
+                    setLastResendTime(Date.now());
+                    setAuthError('確認メールを再送信しました');
+
+                } catch (error) {
+                    console.error('メール再送信エラー:', error);
+                    setAuthError(getAuthErrorMessage(error.code) || 'メールの再送信に失敗しました');
+                } finally {
+                    setResendingEmail(false);
                 }
             };
 
@@ -4436,6 +4481,34 @@
                                     <p className="mobile-text-xs text-gray-400 mb-6">
                                         メールが届かない場合は、迷惑メールフォルダをご確認ください。
                                     </p>
+
+                                    {/* エラーメッセージ表示 */}
+                                    {authError && (
+                                        <div className={`p-3 rounded-lg mb-4 mobile-text-xs ${
+                                            authError.includes('再送信しました')
+                                                ? 'bg-green-500 bg-opacity-20 border border-green-500 text-green-300'
+                                                : 'bg-red-500 bg-opacity-20 border border-red-500 text-red-300'
+                                        }`}>
+                                            {authError}
+                                        </div>
+                                    )}
+
+                                    {/* 再送信ボタン */}
+                                    <button
+                                        onClick={handleResendVerificationEmail}
+                                        disabled={resendingEmail || (lastResendTime && Date.now() - lastResendTime < 60000)}
+                                        className={`w-full px-6 py-3 rounded-xl font-bold text-sm mb-3 transition-all ${
+                                            resendingEmail || (lastResendTime && Date.now() - lastResendTime < 60000)
+                                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                                : 'border border-purple-500 text-purple-300 hover:bg-purple-500 hover:bg-opacity-20'
+                                        }`}
+                                    >
+                                        {resendingEmail ? '送信中...' :
+                                         lastResendTime && Date.now() - lastResendTime < 60000 ?
+                                         `再送信 (${Math.ceil((60000 - (Date.now() - lastResendTime)) / 1000)}秒後)` :
+                                         '確認メールを再送信'}
+                                    </button>
+
                                     <button
                                         onClick={() => {
                                             setEmailVerificationSent(false);
@@ -10815,17 +10888,18 @@
                                     return (
                                         <div className="glass-card rounded-2xl overflow-hidden">
                                             {/* モバイル版: 4分割レイアウト */}
-                                            <div className="block md:hidden relative" style={{ minHeight: '80vh', height: 'auto', maxHeight: '90vh' }}>
+                                            <div className="block relative" style={{ minHeight: '80vh', height: 'auto', maxHeight: '90vh' }}>
 
                                                 {/* 左上：プロジェクト名ヘッダー（完全固定） */}
                                                 <div
-                                                    className="absolute top-0 left-0 z-30 bg-gray-900 bg-opacity-95 backdrop-blur-sm border-r border-b border-gray-600 cursor-pointer select-none"
-                                                    style={{ padding: '20px 12px', width: `${ganttProjectNameWidth.mobile}px`, height: '90px', transition: 'width 0.3s ease' }}
-                                                    onClick={() => toggleGanttProjectNameWidth(true)}
+                                                    className="absolute top-0 left-0 z-30 bg-gray-900 bg-opacity-95 backdrop-blur-sm border-r border-b border-gray-600"
+                                                    style={{ padding: ganttProjectNameWidth.mobile > 0 ? '20px 12px' : '0', width: `${ganttProjectNameWidth.mobile}px`, height: '90px', transition: 'width 0.3s ease, padding 0.3s ease' }}
                                                 >
-                                                    <div className="font-bold text-white text-base flex items-center h-full whitespace-nowrap overflow-hidden">
-                                                        案件名
-                                                    </div>
+                                                    {ganttProjectNameWidth.mobile > 0 && (
+                                                        <div className="font-bold text-white text-base flex items-center h-full whitespace-nowrap overflow-hidden">
+                                                            案件名
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {/* 右上：日付ヘッダー（横スクロール、縦固定）- スクロールバー非表示 */}
@@ -10882,7 +10956,7 @@
 
                                                 {/* 左下：プロジェクト名列（縦スクロール、横固定）- スクロールバー非表示 */}
                                                 <div
-                                                    className="absolute left-0 z-10 bg-gray-800 bg-opacity-30 border-r border-gray-600 cursor-pointer select-none"
+                                                    className="absolute left-0 z-10 bg-gray-800 bg-opacity-30 border-r border-gray-600"
                                                     style={{
                                                         top: '90px',
                                                         width: `${ganttProjectNameWidth.mobile}px`,
@@ -10890,7 +10964,6 @@
                                                         overflow: 'hidden',
                                                         transition: 'width 0.3s ease'
                                                     }}
-                                                    onClick={() => toggleGanttProjectNameWidth(true)}
                                                 >
                                                     <div className="space-y-4" style={{
                                                         padding: '20px 12px',
@@ -10943,6 +11016,10 @@
                                                     }}
                                                     onMouseDown={handleGanttMouseDown}
                                                     onMouseLeave={handleGanttMouseLeave}
+                                                    onClick={() => {
+                                                        // ガントチャート内をタッチして案件列の幅を切り替え
+                                                        toggleGanttProjectNameWidth(true);
+                                                    }}
                                                     onScroll={(e) => {
                                                         // より高速なスクロール同期
                                                         requestAnimationFrame(() => {
@@ -11055,225 +11132,7 @@
                                                 </div>
                                             </div>
 
-                                            {/* デスクトップ版: 4分割レイアウト */}
-                                            <div className="hidden md:block relative" style={{ minHeight: '70vh', height: 'auto' }}>
 
-                                                {/* 左上：プロジェクト名ヘッダー（完全固定） */}
-                                                <div
-                                                    className="absolute top-0 left-0 z-30 bg-gray-900 bg-opacity-95 backdrop-blur-sm border-r border-b border-gray-600"
-                                                    style={{ width: '256px', height: '120px' }}
-                                                >
-                                                    <div className="p-4 font-bold text-white flex items-center h-full">
-                                                        案件名
-                                                    </div>
-                                                </div>
-
-                                                {/* 右上：日付ヘッダー（横スクロール、縦固定）- スクロールバー非表示 */}
-                                                <div
-                                                    className="absolute top-0 z-20 bg-gray-900 bg-opacity-95 backdrop-blur-sm border-b border-gray-600"
-                                                    style={{
-                                                        left: '256px',
-                                                        right: '0', // 右端まで表示
-                                                        height: '120px',
-                                                        overflow: 'hidden', // スクロールバー非表示
-                                                        paddingRight: '17px' // 縦スクロールバー分のパディング
-                                                    }}
-                                                    ref={ganttScrollRef}
-                                                >
-                                                    <div className="min-w-max" style={{ width: `${totalDays * dayWidth}px`, padding: '16px 0' }}>
-                                                        {/* ヘッダー（月表示） */}
-                                                        <div className="flex mb-1">
-                                                            {monthsWithDays.map((month, index) => (
-                                                                <div
-                                                                    key={index}
-                                                                    className="text-center font-bold text-white border-l border-gray-600 px-2 py-1"
-                                                                    style={{ width: `${month.days * dayWidth}px` }}
-                                                                >
-                                                                    {month.name}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-
-                                                        {/* 今日のマーカー行 */}
-                                                        <div className="flex mb-1">
-                                                            {allDays.map((day, index) => (
-                                                                <div
-                                                                    key={index}
-                                                                    className="text-center flex items-center justify-center"
-                                                                    style={{ width: `${dayWidth}px`, height: '20px' }}
-                                                                >
-                                                                    {day.isToday && (
-                                                                        <div
-                                                                            className="w-3 h-3 rounded-full shadow-lg"
-                                                                            style={{ background: 'linear-gradient(90deg, #667eea, #764ba2)' }}
-                                                                        ></div>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-
-                                                        {/* 日付ヘッダー */}
-                                                        <div className="flex">
-                                                            {allDays.map((day, index) => (
-                                                                <div
-                                                                    key={index}
-                                                                    className={`gantt-day-header text-center text-xs py-1 ${day.isHoliday || day.isSunday ? 'bg-red-900 bg-opacity-20 text-red-300' :
-                                                                        day.isSaturday ? 'bg-blue-900 bg-opacity-20 text-blue-300' :
-                                                                            'text-gray-400'
-                                                                        }`}
-                                                                    style={{ width: `${dayWidth}px` }}
-                                                                >
-                                                                    <div className="font-bold">{day.day}</div>
-                                                                    <div className="text-xs">
-                                                                        {['日', '月', '火', '水', '木', '金', '土'][day.dayOfWeek]}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* 左下：プロジェクト名列（縦スクロール、横固定）- スクロールバー非表示 */}
-                                                <div
-                                                    className="absolute left-0 z-10 bg-gray-800 bg-opacity-30 border-r border-gray-600"
-                                                    style={{
-                                                        top: '120px',
-                                                        bottom: '0', // 下端まで表示
-                                                        width: '256px',
-                                                        overflow: 'hidden', // スクロールバー非表示
-                                                        paddingBottom: '17px' // 横スクロールバー分のパディング
-                                                    }}
-                                                >
-                                                    <div className="space-y-6" style={{ padding: '16px' }}>
-                                                        {projectBars.map((project, index) => (
-                                                            <div key={project.id} className="flex items-center gap-2" style={{ minHeight: '60px' }}>
-                                                                <div className="flex flex-col gap-0.5 w-full">
-                                                                    <div className="text-white font-medium truncate" title={project.name}>
-                                                                        {project.name}
-                                                                    </div>
-                                                                    {project.company && (
-                                                                        <div className="text-purple-300 text-xs truncate" title={project.company}>
-                                                                            {project.company}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                {project.createdByName && (
-                                                                    <span
-                                                                        className="text-xs whitespace-nowrap flex-shrink-0 text-white font-bold px-2 py-1 rounded-full"
-                                                                        style={{ background: getUserIconColor(project.createdBy) }}
-                                                                    >
-                                                                        {project.createdByName}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* 右下：タイムライン（両方向スクロール）- メインスクロールエリア */}
-                                                <div
-                                                    className="absolute timeline-area overflow-auto gantt-scroll-vertical"
-                                                    style={{
-                                                        top: '120px',
-                                                        left: '256px',
-                                                        right: '0',
-                                                        bottom: '0',
-                                                        minHeight: '500px',  // 最小高さを追加
-                                                        cursor: isDragging ? 'grabbing' : 'grab'
-                                                    }}
-                                                    onMouseDown={handleGanttMouseDown}
-                                                    onMouseLeave={handleGanttMouseLeave}
-                                                    onScroll={(e) => {
-                                                        // 日付ヘッダーと横スクロールを同期
-                                                        if (ganttScrollRef.current) {
-                                                            const headerContent = ganttScrollRef.current.querySelector('div');
-                                                            if (headerContent) {
-                                                                headerContent.style.transform = `translateX(-${e.target.scrollLeft}px)`;
-                                                            }
-                                                        }
-
-                                                        // プロジェクト名列と縦スクロールを同期
-                                                        const projectNameArea = e.target.parentElement.querySelector('.absolute.left-0.z-10 > div');
-                                                        if (projectNameArea) {
-                                                            projectNameArea.style.transform = `translateY(-${e.target.scrollTop}px)`;
-                                                        }
-                                                    }}
-                                                >
-                                                    <div className="min-w-max relative" style={{
-                                                        width: `${totalDays * dayWidth}px`,
-                                                        minHeight: `${Math.max(projectBars.length * 90 + 32, 600)}px`,  // Increased to match larger spacing
-                                                        padding: '16px 0'
-                                                    }}>
-                                                        {/* 全体の背景グリッド */}
-                                                        <div className="absolute" style={{ top: '0', left: '0', right: '0', bottom: '0', minHeight: '100%' }}>
-                                                            {allDays.map((day, dayIndex) => (
-                                                                <div
-                                                                    key={dayIndex}
-                                                                    className={`absolute top-0 bottom-0`}
-                                                                    style={{
-                                                                        left: `${dayIndex * dayWidth}px`,
-                                                                        width: `${dayWidth}px`,
-                                                                        borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
-                                                                        background: day.isToday ? 'linear-gradient(180deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15))' :
-                                                                            day.isHoliday || day.isSunday ? 'rgba(239, 68, 68, 0.05)' :
-                                                                                day.isSaturday ? 'rgba(59, 130, 246, 0.05)' :
-                                                                                    'transparent'
-                                                                    }}
-                                                                ></div>
-                                                            ))}
-                                                        </div>
-
-
-
-                                                        {/* プロジェクトバー */}
-                                                        <div className="relative space-y-6">
-                                                            {projectBars.map((project, index) => (
-                                                                <div key={project.id} className="relative" style={{ minHeight: '60px' }}>
-                                                                    {/* 個別の背景グリッドは削除 */}
-
-                                                                    {/* プロジェクトバー */}
-                                                                    <div
-                                                                        className={`absolute top-1/2 transform -translate-y-1/2 h-10 rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl bg-gray-500 bg-opacity-30`}
-                                                                        style={{
-                                                                            left: `${project.startOffset * dayWidth}px`,
-                                                                            width: `${project.duration * dayWidth}px`,
-                                                                            zIndex: 10
-                                                                        }}
-                                                                    >
-                                                                        {/* 進捗バー */}
-                                                                        <div
-                                                                            className={`h-full ${project.status === '完了' ? 'bg-green-600' : 'progress-bar'}`}
-                                                                            style={{ width: `${project.progress}%` }}
-                                                                        ></div>
-
-                                                                        {/* 進捗テキスト */}
-                                                                        <div className="absolute inset-0 flex items-center justify-center text-white text-sm font-bold drop-shadow-lg">
-                                                                            {project.progress.toFixed(0)}%
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {/* 開始日と締切日の表示 */}
-                                                                    <div
-                                                                        className="absolute top-1/2 transform -translate-y-1/2 mt-8 text-xs text-gray-400"
-                                                                        style={{ left: `${project.startOffset * dayWidth}px` }}
-                                                                    >
-                                                                        {new Date(project.startDate).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
-                                                                    </div>
-                                                                    <div
-                                                                        className="absolute top-1/2 transform -translate-y-1/2 mt-8 text-xs text-gray-400 text-right"
-                                                                        style={{
-                                                                            left: `${(project.startOffset + project.duration) * dayWidth}px`,
-                                                                            transform: 'translateX(-100%) translateY(-50%)'
-                                                                        }}
-                                                                    >
-                                                                        {new Date(project.deadline).toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' })}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
 
                                         </div>
                                     );
