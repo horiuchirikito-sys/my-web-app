@@ -978,6 +978,19 @@
             />
         );
 
+        // コピーボタン
+        const CopyButton = ({ onClick }) => (
+            <IconButton
+                onClick={onClick}
+                icon={
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                }
+            />
+        );
+
         // メールマーク
         const MailButton = ({ onClick }) => (
             <IconButton
@@ -1370,7 +1383,8 @@
                 show: false,
                 type: '', // 'project' または 'task'
                 id: null,
-                name: ''
+                name: '',
+                inputName: ''
             });
 
             // ログアウト確認用の状態
@@ -2032,7 +2046,8 @@
                     show: true,
                     type,
                     id,
-                    name
+                    name,
+                    inputName: ''
                 });
             }, []);
 
@@ -2372,7 +2387,7 @@
                 }
 
                 if (success) {
-                    setDeleteConfirm({ show: false, type: '', id: null, name: '' });
+                    setDeleteConfirm({ show: false, type: '', id: null, name: '', inputName: '' });
                 }
             }, [deleteConfirm, deleteProject, deleteTask, deleteCompany, deleteTemplate, deleteChecklistTemplate, deleteWiringTemplate]);
 
@@ -2486,7 +2501,7 @@
                         // 全モーダルを閉じる
                         setShowNewProjectForm(false);
                         setShowNewTaskForm(false);
-                        setDeleteConfirm({ show: false, type: '', id: null, name: '' });
+                        setDeleteConfirm({ show: false, type: '', id: null, name: '', inputName: '' });
                         setShowEditProjectForm(false);
                         setShowEditTaskForm(false);
                         setShowEditCompanyForm(false);
@@ -3781,6 +3796,38 @@
                 return false;
             }, []);
 
+            // タスクテンプレートコピー
+            const copyTemplate = useCallback(async (template) => {
+                try {
+                    const copiedTemplate = {
+                        name: template.name + ' のコピー',
+                        companyId: template.companyId,
+                        tasks: template.tasks.map(task => ({
+                            title: task.title,
+                            estimatedHours: task.estimatedHours,
+                            description: task.description
+                        })),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    const docRef = await db.collection('taskTemplates').add(copiedTemplate);
+                    if (docRef && docRef.id) {
+                        setTaskTemplates(prev => [...prev, {
+                            ...copiedTemplate,
+                            id: docRef.id,
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                        }]);
+                        setLastSaved(new Date());
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Error copying task template:', error);
+                }
+                return false;
+            }, []);
+
             // チェックリストテンプレート保存
             const saveChecklistTemplate = useCallback(async () => {
                 if (!newChecklist.name.trim()) return;
@@ -3839,6 +3886,40 @@
                 if (success) {
                     setChecklistTemplates(prev => prev.filter(t => t.id !== templateId));
                     return true;
+                }
+                return false;
+            }, []);
+
+            // チェックリストテンプレートコピー
+            const copyChecklistTemplate = useCallback(async (template) => {
+                try {
+                    const copiedTemplate = {
+                        name: template.name + ' のコピー',
+                        companyId: template.companyId,
+                        checkType: template.checkType || 'single',
+                        categories: template.categories.map(category => ({
+                            name: category.name,
+                            items: category.items.map(item => ({
+                                name: item.name,
+                                description: item.description
+                            }))
+                        })),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    const docRef = await db.collection('checklistTemplates').add(copiedTemplate);
+                    if (docRef && docRef.id) {
+                        setChecklistTemplates(prev => [...prev, {
+                            ...copiedTemplate,
+                            id: docRef.id,
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                        }]);
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Error copying checklist template:', error);
                 }
                 return false;
             }, []);
@@ -4034,6 +4115,34 @@
                 if (success) {
                     setWiringTemplates(prev => prev.filter(t => t.id !== templateId));
                     return true;
+                }
+                return false;
+            }, []);
+
+            // 配線仕様テンプレートコピー
+            const copyWiringTemplate = useCallback(async (template) => {
+                try {
+                    // 深いコピーを作成
+                    const copiedTemplate = {
+                        name: template.name + ' のコピー',
+                        companyId: template.companyId,
+                        specifications: JSON.parse(JSON.stringify(template.specifications || {})),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    const docRef = await db.collection('wiringTemplates').add(copiedTemplate);
+                    if (docRef && docRef.id) {
+                        setWiringTemplates(prev => [...prev, {
+                            ...copiedTemplate,
+                            id: docRef.id,
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                        }]);
+                        return true;
+                    }
+                } catch (error) {
+                    console.error('Error copying wiring template:', error);
                 }
                 return false;
             }, []);
@@ -4638,8 +4747,8 @@
                                                     {project && (
                                                         <>
                                                             <span className="text-gray-300 font-bold">
-                                                                {project.name.length > 3
-                                                                    ? project.name.substring(0, 3)
+                                                                {project.name.length > 5
+                                                                    ? project.name.substring(0, 5)
                                                                     : project.name}
 
                                                             </span>
@@ -5089,6 +5198,8 @@
                                                                                                     setNewTemplate({ ...originalData });
                                                                                                     setShowTemplateForm(true);
                                                                                                 }} />
+                                                                                            <CopyButton
+                                                                                                onClick={() => copyTemplate(template)} />
                                                                                         </>
                                                                                     )}
                                                                                 </div>
@@ -5172,6 +5283,8 @@
                                                                                                     setNewWiring(wiring);
                                                                                                     setShowWiringForm(true);
                                                                                                 }} />
+                                                                                            <CopyButton
+                                                                                                onClick={() => copyWiringTemplate(wiring)} />
                                                                                         </>
                                                                                     )}
                                                                                 </div>
@@ -5327,6 +5440,8 @@
                                                                                                     });
                                                                                                     setShowChecklistForm(true);
                                                                                                 }} />
+                                                                                            <CopyButton
+                                                                                                onClick={() => copyChecklistTemplate(checklist)} />
                                                                                         </>
                                                                                     )}
                                                                                 </div>
@@ -11749,7 +11864,7 @@
                         )}
 
                         {deleteConfirm.show && (
-                            <div className="modal-overlay" onClick={() => setDeleteConfirm({ show: false, type: '', id: null, name: '' })}>
+                            <div className="modal-overlay" onClick={() => setDeleteConfirm({ show: false, type: '', id: null, name: '', inputName: '' })}>
                                 <div className="modal-content glass-card mobile-compact-card rounded-2xl w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
                                     <div className="text-center">
                                         {/* カスタム注意アイコン */}
@@ -11760,16 +11875,34 @@
                                                 <circle cx="12" cy="17" r="0.5" fill="white" />
                                             </svg>
                                         </div>
-                                        <p className="text-gray-300 mb-4 text-sm">
-                                            {deleteConfirm.type === 'project' ? '案件' :
-                                                deleteConfirm.type === 'task' ? '工程' :
-                                                    deleteConfirm.type === 'company' ? '会社' :
-                                                        deleteConfirm.type === 'template' ? '工程テンプレート' :
-                                                            deleteConfirm.type === 'checklist' ? '検査リストテンプレート' :
-                                                                deleteConfirm.type === 'projectChecklist' ? '検査リスト' :
-                                                                    deleteConfirm.type === 'wiring' ? '配線仕様テンプレート' :
-                                                                        deleteConfirm.type === 'projectWiring' ? '配線仕様' : ''}
-                                            「{deleteConfirm.name}」を削除しますか？
+                                        <div className="text-gray-300 mb-4 text-sm">
+                                            <p className="mb-3">
+                                                {deleteConfirm.type === 'project' ? '案件' :
+                                                    deleteConfirm.type === 'task' ? '工程' :
+                                                        deleteConfirm.type === 'company' ? '会社' :
+                                                            deleteConfirm.type === 'template' ? '工程テンプレート' :
+                                                                deleteConfirm.type === 'checklist' ? '検査リストテンプレート' :
+                                                                    deleteConfirm.type === 'projectChecklist' ? '検査リスト' :
+                                                                        deleteConfirm.type === 'wiring' ? '配線仕様テンプレート' :
+                                                                            deleteConfirm.type === 'projectWiring' ? '配線仕様' : ''}
+                                                「{deleteConfirm.name}」を削除しますか？
+                                            </p>
+
+                                            <div className="mb-4">
+                                                <p className="text-gray-400 text-xs mb-2">
+                                                    削除を確認するため、以下の名前を正確に入力してください：
+                                                </p>
+                                                <div className="bg-gray-800 bg-opacity-50 rounded-lg p-2 mb-2">
+                                                    <span className="text-white font-mono text-sm">{deleteConfirm.name}</span>
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    value={deleteConfirm.inputName}
+                                                    onChange={(e) => setDeleteConfirm({ ...deleteConfirm, inputName: e.target.value })}
+                                                    placeholder="削除対象の名前を入力してください"
+                                                    className="w-full px-3 py-2 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none text-sm"
+                                                />
+                                            </div>
 
                                             {deleteConfirm.type === 'project' && (
                                                 <span className="block text-red-300 text-xs mt-2">
@@ -11811,17 +11944,21 @@
                                                     ※ この案件の配線仕様設定が削除されます
                                                 </span>
                                             )}
-                                        </p>
+                                        </div>
                                         <div className="flex gap-2 mb-1.5">
                                             <button
-                                                onClick={() => setDeleteConfirm({ show: false, type: '', id: null, name: '' })}
+                                                onClick={() => setDeleteConfirm({ show: false, type: '', id: null, name: '', inputName: '' })}
                                                 className="flex-1 glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm"
                                             >
                                                 キャンセル
                                             </button>
                                             <button
                                                 onClick={handleDelete}
-                                                className="flex-1 gradient-red text-white px-4 py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-300 text-sm"
+                                                disabled={deleteConfirm.inputName !== deleteConfirm.name}
+                                                className={`flex-1 px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm ${deleteConfirm.inputName === deleteConfirm.name
+                                                    ? 'gradient-red text-white hover:shadow-lg cursor-pointer'
+                                                    : 'bg-gray-600 bg-opacity-50 text-gray-400 cursor-not-allowed'
+                                                    }`}
                                             >
                                                 削除
                                             </button>
