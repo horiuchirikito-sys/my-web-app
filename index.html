@@ -4617,30 +4617,6 @@
 
 
                                 <div className="flex items-center gap-0.5 ml-6">
-                                    {/* リロードボタン */}
-                                    <button
-                                        onClick={() => {
-                                            // キャッシュを無視して強制リロード
-                                            window.location.href = window.location.href + '?t=' + new Date().getTime();
-                                        }}
-                                        className="p-2 text-gray-400 hover:text-white transition-colors duration-200 flex items-center justify-center"
-                                        title="リロード"
-                                        style={{
-                                            background: 'transparent',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            WebkitTapHighlightColor: 'transparent',
-                                            minWidth: '40px',
-                                            minHeight: '40px'
-                                        }}
-                                    >
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="23 4 23 10 17 10"></polyline>
-                                            <polyline points="1 20 1 14 7 14"></polyline>
-                                            <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                                        </svg>
-                                    </button>
-
                                     {/* タイマー実行中の表示 */}
                                     {(() => {
                                         const activeTimerEntries = Object.entries(activeTimers);
@@ -4708,6 +4684,49 @@
                                             </svg>
                                         </button>
                                     )}
+
+                                    {/* リロードボタン */}
+                                    <button
+                                        onClick={() => {
+                                            // 真っ暗な画面を表示
+                                            const loadingOverlay = document.createElement('div');
+                                            loadingOverlay.style.cssText = `
+                                                position: fixed;
+                                                top: 0;
+                                                left: 0;
+                                                width: 100%;
+                                                height: 100%;
+                                                background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%);
+                                                z-index: 9999;
+                                                pointer-events: all;
+                                            `;
+
+                                            document.body.appendChild(loadingOverlay);
+
+                                            // 少し遅延してからリロード（ローディング画面を確実に表示）
+                                            setTimeout(() => {
+                                                // キャッシュを無視して強制リロード
+                                                window.location.href = window.location.href + '?t=' + new Date().getTime();
+                                            }, 100);
+                                        }}
+                                        className="p-2 text-gray-400 hover:text-white transition-colors duration-200 flex items-center justify-center"
+                                        title="リロード"
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            WebkitTapHighlightColor: 'transparent',
+                                            minWidth: '40px',
+                                            minHeight: '40px'
+                                        }}
+                                    >
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="23 4 23 10 17 10"></polyline>
+                                            <polyline points="1 20 1 14 7 14"></polyline>
+                                            <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                        </svg>
+                                    </button>
+
                                     <button
                                         onClick={handleLogout}
                                         className="p-2 text-gray-400 hover:text-white transition-colors duration-200 flex items-center justify-center"
