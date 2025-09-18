@@ -4617,6 +4617,27 @@
 
 
                                 <div className="flex items-center gap-0.5 ml-6">
+                                    {/* リロードボタン */}
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="p-2 text-gray-400 hover:text-white transition-colors duration-200 flex items-center justify-center"
+                                        title="リロード"
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            WebkitTapHighlightColor: 'transparent',
+                                            minWidth: '40px',
+                                            minHeight: '40px'
+                                        }}
+                                    >
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="23 4 23 10 17 10"></polyline>
+                                            <polyline points="1 20 1 14 7 14"></polyline>
+                                            <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                        </svg>
+                                    </button>
+
                                     {/* タイマー実行中の表示 */}
                                     {(() => {
                                         const activeTimerEntries = Object.entries(activeTimers);
