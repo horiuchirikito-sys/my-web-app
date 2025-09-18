@@ -4591,27 +4591,32 @@
                             {/* ユーザー情報と保存状態表示 */}
                             <div className="glass-card mobile-header rounded-2xl flex flex-row sm:flex-row justify-between items-center text-white gap-3 sm:gap-4 relative">
                                 <div className="flex items-center gap-3 sm:gap-4">
-                                    <div className="flex items-center gap-2">
-                                        <div
-                                            className="user-icon user-icon-small cursor-pointer hover:opacity-80 transition-opacity duration-200"
-                                            onClick={() => {
-                                                setTempIconColor(userIconColor);
-                                                setShowColorPickerModal(true);
-                                            }}
-                                            style={{ background: userIconColor }}
-                                        >
-                                            {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
-                                        </div>
-                                        <span className="font-medium text-sm sm:text-base">
-                                            <span className="hidden sm:inline">ようこそ、</span>
-                                            {user.displayName || user.email}
-                                            <span className="hidden sm:inline">さん</span>
-                                        </span>
-                                    </div>
-                                    {lastSaved && (
-                                        <span className="text-xs text-gray-300 pulse-animation hidden sm:block">
-                                            最終同期: {lastSaved.toLocaleString('ja-JP')}
-                                        </span>
+                                    {/* タイマー実行中はユーザー情報を非表示 */}
+                                    {Object.keys(activeTimers).length === 0 && (
+                                        <>
+                                            <div className="flex items-center gap-2">
+                                                <div
+                                                    className="user-icon user-icon-small cursor-pointer hover:opacity-80 transition-opacity duration-200"
+                                                    onClick={() => {
+                                                        setTempIconColor(userIconColor);
+                                                        setShowColorPickerModal(true);
+                                                    }}
+                                                    style={{ background: userIconColor }}
+                                                >
+                                                    {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+                                                </div>
+                                                <span className="font-medium text-sm sm:text-base">
+                                                    <span className="hidden sm:inline">ようこそ、</span>
+                                                    {user.displayName || user.email}
+                                                    <span className="hidden sm:inline">さん</span>
+                                                </span>
+                                            </div>
+                                            {lastSaved && (
+                                                <span className="text-xs text-gray-300 pulse-animation hidden sm:block">
+                                                    最終同期: {lastSaved.toLocaleString('ja-JP')}
+                                                </span>
+                                            )}
+                                        </>
                                     )}
                                 </div>
 
@@ -4699,7 +4704,12 @@
                                                 background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%);
                                                 z-index: 9999;
                                                 pointer-events: all;
+                                                overflow: hidden;
                                             `;
+
+                                            // スクロールを無効化
+                                            document.body.style.overflow = 'hidden';
+                                            document.documentElement.style.overflow = 'hidden';
 
                                             document.body.appendChild(loadingOverlay);
 
