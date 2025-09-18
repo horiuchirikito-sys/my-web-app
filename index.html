@@ -1063,8 +1063,6 @@
             const [emailVerificationSent, setEmailVerificationSent] = useState(false);
             const [waitingForVerification, setWaitingForVerification] = useState(false);
             const [isRegistering, setIsRegistering] = useState(false); // ← この行を追加
-            const [resendingEmail, setResendingEmail] = useState(false);
-            const [lastResendTime, setLastResendTime] = useState(null);
             const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
 
             // 既存の状態
@@ -1866,49 +1864,6 @@
                     console.error('新規登録エラー:', error);
                     setAuthError(getAuthErrorMessage(error.code));
                     setIsRegistering(false); // エラー時もフラグをリセット
-                }
-            };
-
-            // メール確認の再送信
-            const handleResendVerificationEmail = async () => {
-                // 60秒経過チェック
-                if (lastResendTime && Date.now() - lastResendTime < 60000) {
-                    const remainingTime = Math.ceil((60000 - (Date.now() - lastResendTime)) / 1000);
-                    setAuthError(`再送信まであと${remainingTime}秒お待ちください`);
-                    return;
-                }
-
-                try {
-                    setResendingEmail(true);
-                    setAuthError('');
-
-                    // 現在のユーザーを取得
-                    const currentUser = auth.currentUser;
-                    if (!currentUser) {
-                        setAuthError('ユーザー情報が見つかりません。再度ログインしてください。');
-                        return;
-                    }
-
-                    // 確認メールを再送信
-                    const actionCodeSettings = {
-                        // 本番環境と開発環境を自動判定
-                        url: window.location.href.includes('127.0.0.1')
-                            ? 'http://127.0.0.1:5500/index.html'
-                            : window.location.origin,
-                        handleCodeInApp: false
-                    };
-
-                    await currentUser.sendEmailVerification(actionCodeSettings);
-
-                    // 最後の送信時刻を記録
-                    setLastResendTime(Date.now());
-                    setAuthError('確認メールを再送信しました');
-
-                } catch (error) {
-                    console.error('メール再送信エラー:', error);
-                    setAuthError(getAuthErrorMessage(error.code) || 'メールの再送信に失敗しました');
-                } finally {
-                    setResendingEmail(false);
                 }
             };
 
@@ -4481,34 +4436,6 @@
                                     <p className="mobile-text-xs text-gray-400 mb-6">
                                         メールが届かない場合は、迷惑メールフォルダをご確認ください。
                                     </p>
-
-                                    {/* エラーメッセージ表示 */}
-                                    {authError && (
-                                        <div className={`p-3 rounded-lg mb-4 mobile-text-xs ${
-                                            authError.includes('再送信しました')
-                                                ? 'bg-green-500 bg-opacity-20 border border-green-500 text-green-300'
-                                                : 'bg-red-500 bg-opacity-20 border border-red-500 text-red-300'
-                                        }`}>
-                                            {authError}
-                                        </div>
-                                    )}
-
-                                    {/* 再送信ボタン */}
-                                    <button
-                                        onClick={handleResendVerificationEmail}
-                                        disabled={resendingEmail || (lastResendTime && Date.now() - lastResendTime < 60000)}
-                                        className={`w-full px-6 py-3 rounded-xl font-bold text-sm mb-3 transition-all ${
-                                            resendingEmail || (lastResendTime && Date.now() - lastResendTime < 60000)
-                                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                                                : 'border border-purple-500 text-purple-300 hover:bg-purple-500 hover:bg-opacity-20'
-                                        }`}
-                                    >
-                                        {resendingEmail ? '送信中...' :
-                                         lastResendTime && Date.now() - lastResendTime < 60000 ?
-                                         `再送信 (${Math.ceil((60000 - (Date.now() - lastResendTime)) / 1000)}秒後)` :
-                                         '確認メールを再送信'}
-                                    </button>
-
                                     <button
                                         onClick={() => {
                                             setEmailVerificationSent(false);
