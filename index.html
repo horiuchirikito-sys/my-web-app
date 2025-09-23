@@ -811,7 +811,7 @@
         }
 
         .project-tasks-container.expanded {
-            max-height: 2000px;
+            max-height: none;
             padding-top: 7px;
             padding-bottom: 7px;
             overflow: visible;
@@ -4152,13 +4152,21 @@
                 const checklistKey = `task_${entityId}`;
 
                 if (projectChecklists[checklistKey]) {
-                    setCurrentProjectChecklist(projectChecklists[checklistKey]);
+                    const checklist = projectChecklists[checklistKey];
+                    // タスクの完了状態を確認
+                    const task = tasks.find(t => t.id === entityId);
+                    const isTaskCompleted = task?.status === '完了';
+
+                    setCurrentProjectChecklist({
+                        ...checklist,
+                        isTaskCompleted: isTaskCompleted
+                    });
                 } else {
                     // チェックリストが存在しない場合は何もしない
                     return;
                 }
                 setShowChecklistModal(true);
-            }, [projectChecklists]);
+            }, [projectChecklists, tasks]);
 
             // チェックリスト編集モーダルを開く
             const openEditChecklistModal = useCallback((taskId) => {
@@ -4212,7 +4220,23 @@
             const updateChecklistItem = useCallback(async (catIndex, itemIndex, checkType, value) => {
                 setCurrentProjectChecklist(prev => {
                     const updated = { ...prev };
-                    updated.categories[catIndex].items[itemIndex][checkType] = value;
+                    const item = updated.categories[catIndex].items[itemIndex];
+
+                    // チェック状態を更新
+                    item[checkType] = value;
+
+                    // ユーザー情報と時刻を記録
+                    if (value) {
+                        // チェックされた場合
+                        item[`${checkType}By`] = user.uid;
+                        item[`${checkType}ByName`] = user.displayName || user.email;
+                        item[`${checkType}At`] = new Date().toISOString();
+                    } else {
+                        // チェックが外された場合、ユーザー情報をクリア
+                        delete item[`${checkType}By`];
+                        delete item[`${checkType}ByName`];
+                        delete item[`${checkType}At`];
+                    }
 
                     // 自動保存
                     const checklistKey = `task_${updated.taskId}`;
@@ -4231,7 +4255,7 @@
 
                     return updated;
                 });
-            }, [projectChecklists]);
+            }, [projectChecklists, user]);
 
             // プロジェクトのチェックリスト保存
             const saveProjectChecklist = useCallback(async () => {
@@ -10632,14 +10656,12 @@
                                                                                 return (
                                                                                     <div
                                                                                         className={`mt-3 px-3 pt-3 pb-2 glass-card rounded-lg border transition-all duration-200 ${isCompleted
-                                                                                            ? 'border-gray-500 border-opacity-30 opacity-50 cursor-default'
+                                                                                            ? 'border-gray-500 border-opacity-30 cursor-pointer'
                                                                                             : 'border-purple-500 border-opacity-30 cursor-pointer hover:bg-gray-700 hover:bg-opacity-20'
                                                                                             }`}
                                                                                         style={{ boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)' }}
                                                                                         onClick={() => {
-                                                                                            if (!isCompleted) {
-                                                                                                openChecklistModal(task.id, 'task');
-                                                                                            }
+                                                                                            openChecklistModal(task.id, 'task');
                                                                                         }}>
                                                                                         {/* アクションボタン（左端） */}
                                                                                         <div className="flex gap-2 mb-1 -mt-2" style={{ minHeight: '22px' }}>
@@ -11992,26 +12014,86 @@
                                                                     <p className="text-gray-400 mobile-text-xs mt-1">{item.description}</p>
                                                                 )}
                                                             </div>
-                                                            <div className={`flex gap-3 ${currentProjectChecklist.checkType === 'single' ? 'justify-end' : 'justify-end'}`}>
-                                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={item.firstCheck || false}
-                                                                        onChange={(e) => updateChecklistItem(catIndex, itemIndex, 'firstCheck', e.target.checked)}
-                                                                    />
-                                                                    <span className="text-gray-300 mobile-text-sm">
-                                                                        1次
-                                                                    </span>
-                                                                </label>
-                                                                {currentProjectChecklist.checkType !== 'single' && (
-                                                                    <label className="flex items-center gap-2 cursor-pointer">
+
+                                                            {/* Combined checkbox and user info section */}
+                                                            <div className="flex flex-col gap-2 mb-1">
+                                                                <div className="flex items-center justify-between h-[48px] overflow-hidden">
+                                                                    <label className={`flex items-center gap-2 ${currentProjectChecklist.isTaskCompleted ? 'cursor-default' : 'cursor-pointer'}`}>
                                                                         <input
                                                                             type="checkbox"
-                                                                            checked={item.secondCheck || false}
-                                                                            onChange={(e) => updateChecklistItem(catIndex, itemIndex, 'secondCheck', e.target.checked)}
+                                                                            checked={item.firstCheck || false}
+                                                                            onChange={(e) => {
+                                                                                if (!currentProjectChecklist.isTaskCompleted) {
+                                                                                    updateChecklistItem(catIndex, itemIndex, 'firstCheck', e.target.checked);
+                                                                                }
+                                                                            }}
+                                                                            disabled={currentProjectChecklist.isTaskCompleted}
                                                                         />
-                                                                        <span className="text-gray-300 mobile-text-sm">2次</span>
+                                                                        <span className="text-gray-300 mobile-text-sm">1次</span>
                                                                     </label>
+                                                                    {item.firstCheck && item.firstCheckByName && (
+                                                                        <div className="mobile-text-xs text-gray-400 flex items-center gap-2">
+                                                                            <span
+                                                                                className="text-white font-bold px-2 py-1 rounded-full"
+                                                                                style={{
+                                                                                    fontSize: '8px',
+                                                                                    background: getUserIconColor(item.firstCheckBy)
+                                                                                }}
+                                                                            >
+                                                                                {item.firstCheckByName}
+                                                                            </span>
+                                                                            {item.firstCheckAt && (
+                                                                                <span className="text-gray-400 mobile-text-xs">
+                                                                                    ({new Date(item.firstCheckAt).toLocaleString('ja-JP', {
+                                                                                        month: 'numeric',
+                                                                                        day: 'numeric',
+                                                                                        hour: '2-digit',
+                                                                                        minute: '2-digit'
+                                                                                    })})
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                {currentProjectChecklist.checkType !== 'single' && (
+                                                                    <div className="flex items-center justify-between h-[48px] overflow-hidden">
+                                                                        <label className={`flex items-center gap-2 ${currentProjectChecklist.isTaskCompleted ? 'cursor-default' : 'cursor-pointer'}`}>
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={item.secondCheck || false}
+                                                                                onChange={(e) => {
+                                                                                    if (!currentProjectChecklist.isTaskCompleted) {
+                                                                                        updateChecklistItem(catIndex, itemIndex, 'secondCheck', e.target.checked);
+                                                                                    }
+                                                                                }}
+                                                                                disabled={currentProjectChecklist.isTaskCompleted}
+                                                                            />
+                                                                            <span className="text-gray-300 mobile-text-sm">2次</span>
+                                                                        </label>
+                                                                        {item.secondCheck && item.secondCheckByName && (
+                                                                            <div className="mobile-text-xs text-gray-400 flex items-center gap-2">
+                                                                                <span
+                                                                                    className="text-white font-bold px-2 py-1 rounded-full"
+                                                                                    style={{
+                                                                                        fontSize: '8px',
+                                                                                        background: getUserIconColor(item.secondCheckBy)
+                                                                                    }}
+                                                                                >
+                                                                                    {item.secondCheckByName}
+                                                                                </span>
+                                                                                {item.secondCheckAt && (
+                                                                                    <span className="text-gray-400 mobile-text-xs">
+                                                                                        ({new Date(item.secondCheckAt).toLocaleString('ja-JP', {
+                                                                                            month: 'numeric',
+                                                                                            day: 'numeric',
+                                                                                            hour: '2-digit',
+                                                                                            minute: '2-digit'
+                                                                                        })})
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         </div>
