@@ -12016,9 +12016,9 @@
                                                             </div>
 
                                                             {/* Combined checkbox and user info section */}
-                                                            <div className="flex flex-col gap-2 mb-1">
+                                                            <div className="flex flex-col gap-2 mb-1 px-2">
                                                                 <div className="flex items-center justify-between h-[48px] overflow-hidden">
-                                                                    <label className={`flex items-center gap-2 ${currentProjectChecklist.isTaskCompleted ? 'cursor-default' : 'cursor-pointer'}`}>
+                                                                    <label className="flex items-center gap-2 cursor-pointer">
                                                                         <input
                                                                             type="checkbox"
                                                                             checked={item.firstCheck || false}
@@ -12057,7 +12057,7 @@
                                                                 </div>
                                                                 {currentProjectChecklist.checkType !== 'single' && (
                                                                     <div className="flex items-center justify-between h-[48px] overflow-hidden">
-                                                                        <label className={`flex items-center gap-2 ${currentProjectChecklist.isTaskCompleted ? 'cursor-default' : 'cursor-pointer'}`}>
+                                                                        <label className="flex items-center gap-2 cursor-pointer">
                                                                             <input
                                                                                 type="checkbox"
                                                                                 checked={item.secondCheck || false}
