@@ -10421,7 +10421,7 @@
                                                                 {/* 区切りライン */}
                                                                 <div className="mb-2 -mx-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}></div>
                                                                 <div className="flex justify-between items-center mobile-text-sm mt-1">
-                                                                    <div className="font-bold text-white">
+                                                                    <div className={`font-bold ${project.status === '完了' ? 'text-gray-400' : 'text-white'}`}>
                                                                         配線仕様: {projectWirings[project.id].templateName}
                                                                     </div>
                                                                     <div className="text-gray-400 mobile-text-xs">
