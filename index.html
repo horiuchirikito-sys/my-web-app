@@ -12018,7 +12018,7 @@
                                                             {/* Combined checkbox and user info section */}
                                                             <div className="flex flex-col gap-2 mb-1">
                                                                 <div className="flex items-center justify-between h-[48px]">
-                                                                    <label className="flex items-center gap-2 cursor-pointer">
+                                                                    <label className={`flex items-center gap-2 ${currentProjectChecklist.isTaskCompleted ? 'cursor-default opacity-50' : 'cursor-pointer'}`}>
                                                                         <input
                                                                             type="checkbox"
                                                                             checked={item.firstCheck || false}
@@ -12057,7 +12057,7 @@
                                                                 </div>
                                                                 {currentProjectChecklist.checkType !== 'single' && (
                                                                     <div className="flex items-center justify-between h-[48px]">
-                                                                        <label className="flex items-center gap-2 cursor-pointer">
+                                                                        <label className={`flex items-center gap-2 ${currentProjectChecklist.isTaskCompleted ? 'cursor-default opacity-50' : 'cursor-pointer'}`}>
                                                                             <input
                                                                                 type="checkbox"
                                                                                 checked={item.secondCheck || false}
