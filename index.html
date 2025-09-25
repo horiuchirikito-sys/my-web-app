@@ -5040,7 +5040,7 @@
                         <header className="mb-6 md:mb-8">
                             {/* ユーザー情報と保存状態表示 */}
                             <div className="glass-card mobile-header rounded-2xl flex flex-row sm:flex-row justify-between items-center gap-3 sm:gap-4 relative" style={{ color: 'var(--text-primary)' }}>
-                                <div className="flex items-center gap-3 sm:gap-4">
+                                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <div
                                             className="user-icon user-icon-small cursor-pointer hover:opacity-80 transition-opacity duration-200"
@@ -5061,19 +5061,17 @@
                                             </span>
                                         )}
                                     </div>
-                                    {Object.keys(activeTimers).length === 0 && lastSaved && (
-                                        <span className="text-xs text-gray-300 pulse-animation hidden sm:block">
-                                            最終同期: {lastSaved.toLocaleString('ja-JP')}
-                                        </span>
-                                    )}
-                                </div>
 
-
-                                <div className="flex items-center gap-0.5 ml-6">
-                                    {/* タイマー実行中の表示 */}
+                                    {/* タイマー実行中の表示とlastSaved表示を統合 */}
                                     {(() => {
                                         const activeTimerEntries = Object.entries(activeTimers);
-                                        if (activeTimerEntries.length === 0) return null;
+                                        if (activeTimerEntries.length === 0) {
+                                            return lastSaved && (
+                                                <span className="text-xs text-gray-300 pulse-animation hidden sm:block">
+                                                    最終同期: {lastSaved.toLocaleString('ja-JP')}
+                                                </span>
+                                            );
+                                        }
 
                                         const [taskId, timer] = activeTimerEntries[0]; // 最初のアクティブタイマー
                                         const task = tasks.find(t => t.id === taskId);
@@ -5083,7 +5081,7 @@
                                         const seconds = Math.floor((duration % 60000) / 1000);
 
                                         return (
-                                            <div className="flex items-center gap-1 mr-2">
+                                            <div className="flex items-center gap-1">
                                                 <span className="text-white text-xs whitespace-nowrap">
                                                     {project && (
                                                         <>
@@ -5091,7 +5089,6 @@
                                                                 {project.name.length > 5
                                                                     ? project.name.substring(0, 5)
                                                                     : project.name}
-
                                                             </span>
                                                             <span className="mx-1"> </span>
                                                         </>
@@ -5112,6 +5109,9 @@
                                             </div>
                                         );
                                     })()}
+                                </div>
+
+                                <div className="flex items-center gap-0.5">
 
                                     {/* 管理アイコンボタン（マスター管理者のみ表示） */}
                                     {isMasterAdmin && (
