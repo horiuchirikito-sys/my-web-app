@@ -29,6 +29,155 @@
     </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet" />
     <style>
+        /* テーマ変数 - ダークモード（デフォルト） */
+        :root {
+            /* 背景色 */
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #000000;
+
+            /* カード背景 */
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass-shadow: rgba(31, 38, 135, 0.37);
+
+            --glass-dark-bg: rgba(0, 0, 0, 0.2);
+            --glass-dark-border: rgba(255, 255, 255, 0.1);
+            --glass-dark-shadow: rgba(0, 0, 0, 0.3);
+
+            /* ソリッド背景 */
+            --solid-bg-1: #1a1a1a;
+            --solid-bg-2: #2a2a2a;
+            --solid-bg-3: #3a3a3a;
+
+            /* テキストカラー */
+            --text-primary: white;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --text-disabled: rgba(255, 255, 255, 0.3);
+
+            /* グレー系 */
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+        }
+
+        /* ライトモード */
+        [data-theme="light"] {
+            /* 背景色 */
+            --bg-primary: #f8fafc;
+            --bg-secondary: #e2e8f0;
+            --bg-tertiary: #ffffff;
+
+            /* カード背景 */
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(0, 0, 0, 0.1);
+            --glass-shadow: rgba(0, 0, 0, 0.1);
+
+            --glass-dark-bg: rgba(255, 255, 255, 0.95);
+            --glass-dark-border: rgba(0, 0, 0, 0.15);
+            --glass-dark-shadow: rgba(0, 0, 0, 0.15);
+
+            /* ソリッド背景 */
+            --solid-bg-1: #ffffff;
+            --solid-bg-2: #f1f5f9;
+            --solid-bg-3: #e2e8f0;
+
+            /* テキストカラー */
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --text-disabled: #94a3b8;
+
+            /* グレー系 */
+            --gray-300: #475569;
+            --gray-400: #64748b;
+        }
+
+        /* Tailwindクラスを上書きするための強制スタイル */
+        [data-theme="light"] .text-white,
+        [data-theme="light"] .text-gray-300,
+        [data-theme="light"] .text-gray-400 {
+            color: var(--text-primary) !important;
+        }
+
+        [data-theme="light"] .text-gray-300 {
+            color: var(--text-secondary) !important;
+        }
+
+        [data-theme="light"] .text-gray-400 {
+            color: var(--text-muted) !important;
+        }
+
+        /* ホバー時のスタイル */
+        [data-theme="light"] button:hover {
+            color: var(--text-primary) !important;
+        }
+
+        /* ナビゲーションタブのスタイル */
+        [data-theme="light"] .gradient-button.active {
+            color: white !important;
+            /* グラデーションボタンは白文字を維持 */
+        }
+
+        /* 非アクティブなタブ */
+        [data-theme="light"] button:not(.gradient-button) {
+            color: var(--text-muted) !important;
+        }
+
+        [data-theme="light"] button:not(.gradient-button):hover {
+            color: var(--text-primary) !important;
+            background-color: var(--glass-bg) !important;
+        }
+
+        /* グラデーションボタン以外の場合のテキスト色 */
+        [data-theme="light"] .text-red-300 {
+            color: #dc2626 !important;
+        }
+
+        [data-theme="light"] .text-purple-200 {
+            color: #7c3aed !important;
+        }
+
+        /* ライトモード時のbodyと背景の強制上書き */
+        html[data-theme="light"],
+        html[data-theme="light"] body {
+            background: linear-gradient(135deg,
+                    #f8fafc 0%,
+                    #e2e8f0 50%,
+                    #ffffff 100%) !important;
+        }
+
+        [data-theme="light"] .auth-background {
+            background: linear-gradient(135deg,
+                    #f8fafc 0%,
+                    #e2e8f0 50%,
+                    #ffffff 100%) !important;
+        }
+
+        /* より具体性を上げるための追加セレクター */
+        html[data-theme="light"] body.light-theme,
+        body.light-theme {
+            background: linear-gradient(135deg,
+                    #f8fafc 0%,
+                    #e2e8f0 50%,
+                    #ffffff 100%) !important;
+        }
+
+        /* ダークモード明示的指定 */
+        html[data-theme="dark"] body.dark-theme,
+        body.dark-theme {
+            background: linear-gradient(135deg,
+                    var(--bg-primary) 0%,
+                    var(--bg-secondary) 50%,
+                    var(--bg-tertiary) 100%) !important;
+        }
+
+        /* 最も優先度が高いセレクター */
+        body.light-theme {
+            background: #f8fafc !important;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #ffffff 100%) !important;
+        }
+
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
@@ -36,12 +185,39 @@
                 "Helvetica Neue", sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            padding-bottom: env(safe-area-inset-bottom);
+            /* 背景はテーマクラスで制御するため削除 */
+        }
+
+        /* デフォルト（ダーク）テーマ */
+        body,
+        body.dark-theme {
             background: linear-gradient(135deg,
                     #0f0f0f 0%,
                     #1a1a1a 50%,
-                    #000000 100%);
-            min-height: 100vh;
-            padding-bottom: env(safe-area-inset-bottom);
+                    #000000 100%) !important;
+        }
+
+        /* ライトテーマ - 最も高い優先度 */
+        html,
+        html.light-theme,
+        html[data-theme="light"],
+        body.light-theme {
+            background: linear-gradient(135deg,
+                    #f8fafc 0%,
+                    #e2e8f0 50%,
+                    #ffffff 100%) !important;
+        }
+
+        /* ダークテーマも明示的に */
+        html.dark-theme,
+        html[data-theme="dark"],
+        body.dark-theme {
+            background: linear-gradient(135deg,
+                    #0f0f0f 0%,
+                    #1a1a1a 50%,
+                    #000000 100%) !important;
         }
 
         /* モバイル向けスタイル */
@@ -125,42 +301,44 @@
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--glass-bg);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 var(--glass-shadow);
+            color: var(--text-primary);
         }
 
         .glass-card-dark {
-            background: rgba(0, 0, 0, 0.2);
+            background: var(--glass-dark-bg);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-dark-border);
+            box-shadow: 0 8px 32px 0 var(--glass-dark-shadow);
+            color: var(--text-primary);
         }
 
         .dark-input {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
+            background: var(--glass-dark-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
         }
 
         .dark-input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--text-muted);
         }
 
         /* selectのオプション部分を黒くする */
         .dark-input option {
-            background: #1a1a1a;
-            color: white;
+            background: var(--solid-bg-1);
+            color: var(--text-primary);
             border: none;
         }
 
         .dark-input option:hover {
-            background: #2a2a2a;
+            background: var(--solid-bg-2);
         }
 
         .dark-input option:checked {
-            background: #3a3a3a;
+            background: var(--solid-bg-3);
         }
 
         /* 既存のselect.dark-inputスタイルを削除して、以下に置き換え */
@@ -174,9 +352,9 @@
 
         .custom-select {
             width: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
+            background: var(--glass-dark-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
             padding: 12px 40px 12px 16px;
             border-radius: 12px;
             cursor: pointer;
@@ -207,13 +385,13 @@
 
         .custom-select-arrow::before {
             content: '▼';
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--text-muted);
             font-size: 10px;
             line-height: 1;
         }
 
         .custom-select-container:hover .custom-select-arrow::before {
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--text-secondary);
             /* ホバー時は明るく */
         }
 
@@ -222,13 +400,13 @@
         /* フォーカス時の矢印（オプション - 不要なら削除可） */
         /* オプションのスタイル */
         .custom-select option {
-            background: #1a1a1a;
-            color: white;
+            background: var(--solid-bg-1);
+            color: var(--text-primary);
             padding: 8px;
         }
 
         .custom-select option:hover {
-            background: #2a2a2a;
+            background: var(--solid-bg-2);
         }
 
         .custom-select option:checked {
@@ -408,9 +586,9 @@
 
         .auth-background {
             background: linear-gradient(135deg,
-                    #0f0f0f 0%,
-                    #1a1a1a 50%,
-                    #000000 100%);
+                    var(--bg-primary) 0%,
+                    var(--bg-secondary) 50%,
+                    var(--bg-tertiary) 100%);
         }
 
         /* 日付入力のカレンダーアイコンを明るくする */
@@ -496,6 +674,12 @@
             border-radius: 4px;
             transition: all 0.2s ease;
             user-select: none;
+        }
+
+        /* ライトモード時の会社名（紫色テキスト）を濃くする */
+        [data-theme="light"] .text-purple-300 {
+            color: #7c3aed !important;
+            /* 濃い紫色 */
         }
 
         .drag-handle:hover {
@@ -835,7 +1019,118 @@
             padding-bottom: 7px;
             overflow: visible;
         }
+
+        /* 🚀 最強の背景色強制適用 - すべてのCSSより優先 */
+        html.light-theme,
+        html.light-theme body,
+        html[data-theme="light"],
+        html[data-theme="light"] body,
+        body.light-theme {
+            background: #f8fafc !important;
+            background-color: #f8fafc !important;
+            background-image: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #ffffff 100%) !important;
+        }
+
+        html.dark-theme,
+        html.dark-theme body,
+        html[data-theme="dark"],
+        html[data-theme="dark"] body,
+        body.dark-theme {
+            background: #0f0f0f !important;
+            background-color: #0f0f0f !important;
+            background-image: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%) !important;
+        }
+
+        /* 念のためのデフォルト */
+        html,
+        html body {
+            background: #0f0f0f !important;
+            background-image: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%) !important;
+        }
     </style>
+
+    <!-- 🔥 最強の背景色適用 - TailwindCSSの後に読み込み -->
+    <style>
+        /* 最も具体的なセレクターと最高の優先度 */
+        html.light-theme,
+        html.light-theme body,
+        body.light-theme,
+        html[data-theme="light"],
+        html[data-theme="light"] body {
+            background: #f8fafc !important;
+            background-color: #f8fafc !important;
+            background-image: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #ffffff 100%) !important;
+            background-attachment: fixed !important;
+            background-repeat: no-repeat !important;
+            background-size: cover !important;
+        }
+
+        html.dark-theme,
+        html.dark-theme body,
+        body.dark-theme,
+        html[data-theme="dark"],
+        html[data-theme="dark"] body {
+            background: #0f0f0f !important;
+            background-color: #0f0f0f !important;
+            background-image: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%) !important;
+            background-attachment: fixed !important;
+            background-repeat: no-repeat !important;
+            background-size: cover !important;
+        }
+
+        /* デフォルト */
+        html,
+        html body {
+            background: #0f0f0f !important;
+            background-image: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%) !important;
+        }
+
+        /* TailwindCSSの具体的なクラスを上書き */
+        .bg-gray-900,
+        .bg-black,
+        .bg-gray-800 {
+            background: inherit !important;
+        }
+
+        /* 🔥 完全リセット + 強制適用 */
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100% !important;
+            width: 100% !important;
+        }
+
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100% !important;
+            width: 100% !important;
+            min-height: 100vh !important;
+        }
+
+        /* ダークモード（デフォルト） */
+        html,
+        body {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%) !important;
+        }
+
+        /* ライトモード */
+        [data-theme="light"] {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #ffffff 100%) !important;
+        }
+
+        /* rootのdivでも背景を制御 */
+        #root {
+            min-height: 100vh !important;
+            width: 100% !important;
+            background: transparent !important;
+        }
+    </style>
+
     <link rel="manifest" href="manifest.json">
     <meta name="theme_color" content="#000000">
 </head>
@@ -1077,6 +1372,33 @@
             const [waitingForVerification, setWaitingForVerification] = useState(false);
             const [isRegistering, setIsRegistering] = useState(false); // ← この行を追加
             const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+            const [theme, setTheme] = useState(() => {
+                return localStorage.getItem('theme') || 'dark';
+            });
+
+            // テーマ変更時にdocument属性を更新
+            useEffect(() => {
+                console.log('Theme changing to:', theme);
+
+                document.documentElement.setAttribute('data-theme', theme);
+
+
+                localStorage.setItem('theme', theme);
+                console.log('Theme applied successfully');
+
+            }, [theme]);
+
+            // 初期化時にテーマを適用
+            useEffect(() => {
+                const savedTheme = localStorage.getItem('theme') || 'dark';
+                console.log('Initializing theme:', savedTheme);
+
+                document.documentElement.setAttribute('data-theme', savedTheme);
+
+                console.log('Initial theme applied');
+
+            }, []);
+
 
             // 既存の状態
             const [projects, setProjects] = useState([]);
@@ -2240,7 +2562,7 @@
                         setShowEditTaskForm(false);
                         setEditTask(null);
                         setLastSaved(new Date());
-                        setTimeout(() => updateProjectStatuses(), 100);
+                        updateProjectStatuses();
                     }
                 }
             }, [editTask, tasks, checklistTemplates, projectChecklists]);
@@ -2597,12 +2919,7 @@
 
             useEffect(() => {
                 if (projects.length > 0 && tasks.length > 0) {
-                    // 少し遅延させて重複実行を避ける
-                    const timer = setTimeout(() => {
-                        updateProjectStatuses();
-                    }, 100);
-
-                    return () => clearTimeout(timer);
+                    updateProjectStatuses();
                 }
             }, [tasks.map(t => t.status).join(','), projects.length, updateProjectStatuses]);
 
@@ -2847,7 +3164,7 @@
                         });
                         setShowNewTaskForm(false);
                         setLastSaved(new Date());
-                        setTimeout(() => updateProjectStatuses(), 100);
+                        updateProjectStatuses();
                         console.log('工程作成成功');
                     } else {
                         throw new Error('工程の保存に失敗しました');
@@ -2953,7 +3270,7 @@
                             task.id === taskId ? updatedTask : task
                         ));
                         setLastSaved(new Date());
-                        setTimeout(() => updateProjectStatuses(), 100);
+                        updateProjectStatuses();
                     }
                 }
             };
@@ -3166,7 +3483,7 @@
                         return newTimers;
                     });
                     setLastSaved(new Date());
-                    setTimeout(() => updateProjectStatuses(), 100);
+                    updateProjectStatuses();
                     return true;
                 }
                 return false;
@@ -3545,10 +3862,6 @@
                 setDraggedTask(null);
                 setDragOverTask(null);
 
-                // 少し遅延してもう一度クリア（保険）
-                setTimeout(() => {
-                    setDragOverTask(null);
-                }, 50);
             };
 
             const handleDragOver = (e) => {
@@ -4717,12 +5030,16 @@
             }
 
             return (
-                <div className="min-h-screen mobile-container" style={{ background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%)' }}>
+                <div className="min-h-screen mobile-container" style={{
+                    background: theme === 'light'
+                        ? 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #ffffff 100%)'
+                        : 'linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%)'
+                }}>
                     <div className="max-w-7xl mx-auto">
                         {/* ヘッダー */}
                         <header className="mb-6 md:mb-8">
                             {/* ユーザー情報と保存状態表示 */}
-                            <div className="glass-card mobile-header rounded-2xl flex flex-row sm:flex-row justify-between items-center text-white gap-3 sm:gap-4 relative">
+                            <div className="glass-card mobile-header rounded-2xl flex flex-row sm:flex-row justify-between items-center gap-3 sm:gap-4 relative" style={{ color: 'var(--text-primary)' }}>
                                 <div className="flex items-center gap-3 sm:gap-4">
                                     <div className="flex items-center gap-2">
                                         <div
@@ -4803,7 +5120,7 @@
                                                 await loadAllUsers();
                                                 setShowUserManagementModal(true);
                                             }}
-                                            className="p-2 text-gray-400 hover:text-white transition-colors duration-200 flex items-center justify-center"
+                                            className="p-2 transition-colors duration-200 flex items-center justify-center"
                                             title="ユーザー管理"
                                             style={{
                                                 background: 'transparent',
@@ -4844,13 +5161,10 @@
 
                                             document.body.appendChild(loadingOverlay);
 
-                                            // 少し遅延してからリロード（ローディング画面を確実に表示）
-                                            setTimeout(() => {
-                                                // キャッシュを無視して強制リロード
-                                                window.location.href = window.location.href + '?t=' + new Date().getTime();
-                                            }, 100);
+                                            // キャッシュを無視して強制リロード
+                                            window.location.href = window.location.href + '?t=' + new Date().getTime();
                                         }}
-                                        className="p-2 text-gray-400 hover:text-white transition-colors duration-200 flex items-center justify-center"
+                                        className="p-2 transition-colors duration-200 flex items-center justify-center"
                                         title="リロード"
                                         style={{
                                             background: 'transparent',
@@ -4868,9 +5182,44 @@
                                         </svg>
                                     </button>
 
+                                    {/* テーマ切り替えボタン */}
+                                    <button
+                                        onClick={() => {
+                                            setTheme(theme === 'dark' ? 'light' : 'dark');
+                                        }}
+                                        className="p-2 transition-colors duration-200 flex items-center justify-center"
+                                        title={theme === 'dark' ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            WebkitTapHighlightColor: 'transparent',
+                                            minWidth: '40px',
+                                            minHeight: '40px'
+                                        }}
+                                    >
+                                        {theme === 'dark' ? (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="12" cy="12" r="5" />
+                                                <line x1="12" y1="1" x2="12" y2="3" />
+                                                <line x1="12" y1="21" x2="12" y2="23" />
+                                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                                                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                                                <line x1="1" y1="12" x2="3" y2="12" />
+                                                <line x1="21" y1="12" x2="23" y2="12" />
+                                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                                                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                                            </svg>
+                                        ) : (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                                            </svg>
+                                        )}
+                                    </button>
+
                                     <button
                                         onClick={handleLogout}
-                                        className="p-2 text-gray-400 hover:text-white transition-colors duration-200 flex items-center justify-center"
+                                        className="p-2 transition-colors duration-200 flex items-center justify-center"
                                         title="ログアウト"
                                         style={{
                                             background: 'transparent',
@@ -4887,7 +5236,7 @@
                             </div>
                         </header>
 
-                        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-95 backdrop-filter blur-sm border-t border-gray-600 rounded-t-2xl" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                        <div className="fixed bottom-0 left-0 right-0 z-50 backdrop-filter blur-sm border-t rounded-t-2xl" style={{ backgroundColor: 'var(--solid-bg-1)', opacity: '0.95', borderColor: 'var(--glass-border)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
                             <div className="flex px-2 py-1.5 pb-5">
                                 <button
                                     onClick={() => setActiveTab('tasks')}
@@ -5557,7 +5906,7 @@
                                                 </button>
                                                 <button
                                                     onClick={() => setShowCompanyForm(false)}
-                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                                 >
                                                     キャンセル
                                                 </button>
@@ -5600,7 +5949,7 @@
                                         </button>
                                         <button
                                             onClick={() => setShowEditCompanyForm(false)}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -5690,9 +6039,6 @@
                                                         e.target.style.opacity = '1';
                                                         setDraggedChecklistCategory(null);
                                                         setDragOverChecklistCategory(null);
-                                                        setTimeout(() => {
-                                                            setDragOverChecklistCategory(null);
-                                                        }, 50);
                                                     }}
                                                     onDragOver={(e) => {
                                                         e.preventDefault();
@@ -5780,9 +6126,6 @@
                                                                         e.target.style.opacity = '1';
                                                                         setDraggedChecklistItem(null);
                                                                         setDragOverChecklistItem(null);
-                                                                        setTimeout(() => {
-                                                                            setDragOverChecklistItem(null);
-                                                                        }, 50);
                                                                     }}
                                                                     onDragOver={(e) => {
                                                                         e.preventDefault();
@@ -5912,7 +6255,7 @@
                                                     categories: [{ name: '', items: [{ name: '', description: '' }] }]
                                                 });
                                             }}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -5965,9 +6308,6 @@
                                                         e.target.style.opacity = '1';
                                                         setDraggedTemplateTask(null);
                                                         setDragOverTemplateTask(null);
-                                                        setTimeout(() => {
-                                                            setDragOverTemplateTask(null);
-                                                        }, 50);
                                                     }}
                                                     onDragOver={(e) => {
                                                         e.preventDefault();
@@ -6118,7 +6458,7 @@
                                         </button>
                                         <button
                                             onClick={cancelTemplateEdit}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -8922,7 +9262,7 @@
                                                 setEditingWiring(null);
                                                 resetWiringForm();
                                             }}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -9343,7 +9683,7 @@
                                                         resetNewProjectForm(); // 追加
                                                         setShowNewProjectForm(false);
                                                     }}
-                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                                 >
                                                     キャンセル
                                                 </button>
@@ -9459,7 +9799,7 @@
                                                         resetNewTaskForm(); // 追加
                                                         setShowNewTaskForm(false);
                                                     }}
-                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                                 >
                                                     キャンセル
                                                 </button>
@@ -9801,7 +10141,7 @@
                                                         setShowEditProjectForm(false);
                                                         setCompanyInputMode('select');
                                                     }}
-                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                                 >
                                                     キャンセル
                                                 </button>
@@ -9910,7 +10250,7 @@
                                                 </button>
                                                 <button
                                                     onClick={() => setShowEditTaskForm(false)}
-                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                                 >
                                                     キャンセル
                                                 </button>
@@ -10050,7 +10390,7 @@
                                             <div className="mt-6 mb-1.5">
                                                 <button
                                                     onClick={() => setShowHoursDetail(false)}
-                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                                 >
                                                     閉じる
                                                 </button>
@@ -10227,7 +10567,7 @@
                                                         <div className="mt-6 mb-1.5">
                                                             <button
                                                                 onClick={() => setShowProjectDetail(false)}
-                                                                className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                                                className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                                             >
                                                                 閉じる
                                                             </button>
@@ -12133,7 +12473,7 @@
                                     <div className="mt-6 mb-1.5">
                                         <button
                                             onClick={() => setShowChecklistModal(false)}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             閉じる
                                         </button>
@@ -12226,9 +12566,6 @@
                                                         e.target.style.opacity = '1';
                                                         setDraggedChecklistCategory(null);
                                                         setDragOverChecklistCategory(null);
-                                                        setTimeout(() => {
-                                                            setDragOverChecklistCategory(null);
-                                                        }, 50);
                                                     }}
                                                     onDragOver={(e) => {
                                                         e.preventDefault();
@@ -12317,9 +12654,6 @@
                                                                         e.target.style.opacity = '1';
                                                                         setDraggedChecklistItem(null);
                                                                         setDragOverChecklistItem(null);
-                                                                        setTimeout(() => {
-                                                                            setDragOverChecklistItem(null);
-                                                                        }, 50);
                                                                     }}
                                                                     onDragOver={(e) => {
                                                                         e.preventDefault();
@@ -12455,7 +12789,7 @@
                                                 setShowEditChecklistModal(false);
                                                 setEditingProjectChecklist(null); // nullに設定して完全にクリア
                                             }}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -13447,7 +13781,7 @@
                                     <div className="mt-6 mb-1.5">
                                         <button
                                             onClick={() => setShowWiringModal(false)}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             閉じる
                                         </button>
@@ -13609,7 +13943,7 @@
                                         </button>
                                         <button
                                             onClick={() => setShowHoursInputModal(false)}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -13718,7 +14052,7 @@
                                         </button>
                                         <button
                                             onClick={() => setShowUserManagementModal(false)}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -13800,7 +14134,7 @@
                                                 setTempIconColor(userIconColor); // 一時色を元に戻す
                                                 setShowColorPickerModal(false);
                                             }}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -13944,7 +14278,7 @@
                                     <div className="mt-6 mb-1.5">
                                         <button
                                             onClick={() => setShowDailyHoursModal(false)}
-                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
                                         >
                                             閉じる
                                         </button>
