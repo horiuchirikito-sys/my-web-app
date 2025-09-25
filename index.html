@@ -5062,7 +5062,7 @@
                                         )}
                                     </div>
 
-                                    {/* タイマー実行中の表示とlastSaved表示を統合 */}
+                                    {/* タイマー実行中の表示（停止ボタンは右側へ移動） */}
                                     {(() => {
                                         const activeTimerEntries = Object.entries(activeTimers);
                                         if (activeTimerEntries.length === 0) {
@@ -5081,37 +5081,52 @@
                                         const seconds = Math.floor((duration % 60000) / 1000);
 
                                         return (
-                                            <div className="flex items-center gap-1">
-                                                <span className="text-white text-xs whitespace-nowrap">
-                                                    {project && (
-                                                        <>
-                                                            <span className="text-gray-300 font-bold">
-                                                                {project.name.length > 5
-                                                                    ? project.name.substring(0, 5)
-                                                                    : project.name}
-                                                            </span>
-                                                            <span className="mx-1"> </span>
-                                                        </>
-                                                    )}
-                                                    <span className="text-red-300 font-bold mr-1">
-                                                        {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-                                                    </span>
+                                            <span className="text-white text-xs whitespace-nowrap">
+                                                {project && (
+                                                    <>
+                                                        <span className="text-gray-300 font-bold">
+                                                            {project.name.length > 5
+                                                                ? project.name.substring(0, 5)
+                                                                : project.name}
+                                                        </span>
+                                                        <span className="mx-1"> </span>
+                                                    </>
+                                                )}
+                                                <span className="text-red-300 font-bold">
+                                                    {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
                                                 </span>
-                                                <button
-                                                    onClick={() => toggleTimer(taskId)}
-                                                    className="flex items-center justify-center text-white font-normal transition-all duration-300 gradient-red hover:shadow-lg pulse-animation w-5 h-5 rounded-full flex-shrink-0 text-xs"
-                                                    title="タイマー停止"
-                                                >
-                                                    <span style={{ transform: 'translateX(0.2px)' }}>
-                                                        ■
-                                                    </span>
-                                                </button>
-                                            </div>
+                                            </span>
                                         );
                                     })()}
                                 </div>
 
                                 <div className="flex items-center gap-0.5">
+                                    {/* タイマー停止ボタン（アイコン群の一番左） */}
+                                    {(() => {
+                                        const activeTimerEntries = Object.entries(activeTimers);
+                                        if (activeTimerEntries.length === 0) return null;
+
+                                        const [taskId] = activeTimerEntries[0];
+                                        return (
+                                            <button
+                                                onClick={() => toggleTimer(taskId)}
+                                                className="p-2 transition-colors duration-200 flex items-center justify-center text-red-400 hover:text-red-300 pulse-animation"
+                                                title="タイマー停止"
+                                                style={{
+                                                    background: 'transparent',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    WebkitTapHighlightColor: 'transparent',
+                                                    minWidth: '40px',
+                                                    minHeight: '40px'
+                                                }}
+                                            >
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                                    <rect x="6" y="6" width="12" height="12" rx="2"/>
+                                                </svg>
+                                            </button>
+                                        );
+                                    })()}
 
                                     {/* 管理アイコンボタン（マスター管理者のみ表示） */}
                                     {isMasterAdmin && (
