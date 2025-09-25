@@ -5120,7 +5120,7 @@
                                                 await loadAllUsers();
                                                 setShowUserManagementModal(true);
                                             }}
-                                            className="p-2 transition-colors duration-200 flex items-center justify-center"
+                                            className="p-2 transition-colors duration-200 flex items-center justify-center text-gray-400 hover:text-white"
                                             title="ユーザー管理"
                                             style={{
                                                 background: 'transparent',
@@ -5141,7 +5141,11 @@
                                     {/* リロードボタン */}
                                     <button
                                         onClick={() => {
-                                            // 真っ暗な画面を表示
+                                            // テーマに応じて読み込み画面の色を変更
+                                            const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                                            const backgroundColor = currentTheme === 'light' ? '#ffffff' : '#000000';
+                                            const textColor = currentTheme === 'light' ? '#000000' : '#ffffff';
+
                                             const loadingOverlay = document.createElement('div');
                                             loadingOverlay.style.cssText = `
                                                 position: fixed;
@@ -5149,8 +5153,8 @@
                                                 left: 0;
                                                 width: 100%;
                                                 height: 100%;
-                                                background: #000000;
-                                                z-index: 9999;
+                                                background: ${backgroundColor};
+                                                z-index: 99999;
                                                 pointer-events: all;
                                                 overflow: hidden;
                                             `;
