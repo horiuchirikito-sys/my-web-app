@@ -5110,20 +5110,12 @@
                                         return (
                                             <button
                                                 onClick={() => toggleTimer(taskId)}
-                                                className="p-2 transition-colors duration-200 flex items-center justify-center text-red-400 hover:text-red-300 pulse-animation"
+                                                className="flex items-center justify-center text-white font-normal transition-all duration-300 gradient-red hover:shadow-lg pulse-animation w-8 h-8 rounded-full flex-shrink-0 text-xs"
                                                 title="タイマー停止"
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    cursor: 'pointer',
-                                                    WebkitTapHighlightColor: 'transparent',
-                                                    minWidth: '40px',
-                                                    minHeight: '40px'
-                                                }}
                                             >
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                                    <rect x="6" y="6" width="12" height="12" rx="2"/>
-                                                </svg>
+                                                <span style={{ transform: 'translateX(0.2px)' }}>
+                                                    ■
+                                                </span>
                                             </button>
                                         );
                                     })()}
