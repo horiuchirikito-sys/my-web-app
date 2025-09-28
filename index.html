@@ -895,6 +895,17 @@
             border-left: 1px solid rgba(0, 0, 0, 0.15);
         }
 
+        /* ローディングスピナー */
+        .loading-spinner {
+            border: 2px solid white;
+            border-top: 2px solid transparent;
+        }
+
+        [data-theme="light"] .loading-spinner {
+            border: 2px solid #374151;
+            border-top: 2px solid transparent;
+        }
+
         /* かっこいいユーザーアイコン */
         .user-icon {
             display: inline-flex;
@@ -4931,12 +4942,10 @@
                         >
                             <div className="text-white mobile-text-base md:text-xl mb-4">読み込み中...</div>
                             <div
-                                className="mx-auto"
+                                className="mx-auto loading-spinner"
                                 style={{
                                     width: '32px',
                                     height: '32px',
-                                    border: '2px solid white',
-                                    borderTop: '2px solid transparent',
                                     borderRadius: '50%',
                                     animation: 'spin 1s linear infinite',
                                     WebkitAnimation: 'spin 1s linear infinite'
