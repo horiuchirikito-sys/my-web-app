@@ -69,11 +69,11 @@
             --bg-tertiary: #ffffff;
 
             /* カード背景 */
-            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-bg: rgba(255, 255, 255, 0.95);
             --glass-border: rgba(0, 0, 0, 0.1);
             --glass-shadow: rgba(0, 0, 0, 0.1);
 
-            --glass-dark-bg: rgba(255, 255, 255, 0.95);
+            --glass-dark-bg: rgba(255, 255, 255, 0.98);
             --glass-dark-border: rgba(0, 0, 0, 0.15);
             --glass-dark-shadow: rgba(0, 0, 0, 0.15);
 
@@ -94,10 +94,40 @@
         }
 
         /* Tailwindクラスを上書きするための強制スタイル */
-        [data-theme="light"] .text-white,
+        [data-theme="light"] .text-white:not(.gradient-red):not(.gradient-button),
         [data-theme="light"] .text-gray-300,
         [data-theme="light"] .text-gray-400 {
             color: var(--text-primary) !important;
+        }
+
+        /* バッジの文字色は常に白に保つ */
+        .badge-text-white {
+            color: white !important;
+        }
+
+        /* ボタンの文字色は常に白に保つ */
+        .button-text-white {
+            color: white !important;
+        }
+
+        /* ボタンのホバー時も白色を維持 */
+        .button-text-white:hover,
+        .button-text-white:hover * {
+            color: white !important;
+        }
+
+        /* テーマ切り替えボタンの枠線を防ぐ */
+        button[title*="モードに切り替え"],
+        button[title*="モードに切り替え"]:hover,
+        button[title*="モードに切り替え"]:focus,
+        button[title*="モードに切り替え"]:active,
+        button[title*="モードに切り替え"]:focus-visible,
+        button[title*="モードに切り替え"]:focus-within {
+            background: transparent !important;
+            background-color: transparent !important;
+            outline: none !important;
+            box-shadow: none !important;
+            border: none !important;
         }
 
         [data-theme="light"] .text-gray-300 {
@@ -127,6 +157,44 @@
         [data-theme="light"] button:not(.gradient-button):hover {
             color: var(--text-primary) !important;
             background-color: var(--glass-bg) !important;
+        }
+
+        /* テーマ切り替えボタンはライトモード時も背景透明を維持 */
+        [data-theme="light"] button[title*="モードに切り替え"]:hover {
+            background-color: transparent !important;
+        }
+
+        /* グラデーションボタンの文字色は常に白に保つ */
+        [data-theme="light"] .gradient-button {
+            color: white !important;
+        }
+
+        /* 赤いグラデーションボタンの文字色も常に白に保つ */
+        [data-theme="light"] .gradient-red {
+            color: white !important;
+        }
+
+        /* 削除ボタン専用の文字色設定 */
+        [data-theme="light"] .gradient-red.text-white {
+            color: white !important;
+        }
+
+        /* 工程カードの区切りライン */
+        .task-separator-line {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] .task-separator-line {
+            border-top: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        /* 案件ヘッダーの区切りライン */
+        .project-separator-line {
+            border-top: 1px solid #4b5563;
+        }
+
+        [data-theme="light"] .project-separator-line {
+            border-top: 1px solid rgba(0, 0, 0, 0.2);
         }
 
         /* グラデーションボタン以外の場合のテキスト色 */
@@ -710,6 +778,10 @@
             border-right: 1px dashed rgba(255, 255, 255, 0.1);
         }
 
+        [data-theme="light"] .gantt-grid-line {
+            border-right: 1px dashed rgba(0, 0, 0, 0.2);
+        }
+
         /* ガントチャートのスクロールバー */
         /* 修正後 */
         .gantt-scroll::-webkit-scrollbar {
@@ -804,6 +876,23 @@
         .gantt-day-header {
             box-sizing: border-box;
             border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] .gantt-day-cell {
+            border-left: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        [data-theme="light"] .gantt-day-header {
+            border-left: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        /* ガントチャートの縦ライン */
+        .gantt-vertical-line {
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="light"] .gantt-vertical-line {
+            border-left: 1px solid rgba(0, 0, 0, 0.15);
         }
 
         /* かっこいいユーザーアイコン */
@@ -5062,26 +5151,29 @@
                                         )}
                                     </div>
 
-                                    {/* タイマー表示 */}
-                                    <div className="flex items-center gap-1 mr-2">
-                                        {(() => {
-                                            const activeTimerEntries = Object.entries(activeTimers);
-                                            if (activeTimerEntries.length === 0) {
-                                                return lastSaved && (
-                                                    <span className="text-xs text-gray-300 pulse-animation hidden sm:block">
-                                                        最終同期: {lastSaved.toLocaleString('ja-JP')}
-                                                    </span>
-                                                );
-                                            }
+                                </div>
 
-                                            const [taskId, timer] = activeTimerEntries[0]; // 最初のアクティブタイマー
-                                            const task = tasks.find(t => t.id === taskId);
-                                            const project = projects.find(p => p.id === task?.projectId);
-                                            const duration = Date.now() - timer.startTime;
-                                            const minutes = Math.floor(duration / 60000);
-                                            const seconds = Math.floor((duration % 60000) / 1000);
+                                <div className="flex items-center gap-0.5">
+                                    {/* タイマー表示（タイマーボタンの左） */}
+                                    {(() => {
+                                        const activeTimerEntries = Object.entries(activeTimers);
+                                        if (activeTimerEntries.length === 0) {
+                                            return lastSaved && (
+                                                <span className="text-xs text-gray-300 pulse-animation hidden sm:block mr-4">
+                                                    最終同期: {lastSaved.toLocaleString('ja-JP')}
+                                                </span>
+                                            );
+                                        }
 
-                                            return (
+                                        const [taskId, timer] = activeTimerEntries[0]; // 最初のアクティブタイマー
+                                        const task = tasks.find(t => t.id === taskId);
+                                        const project = projects.find(p => p.id === task?.projectId);
+                                        const duration = Date.now() - timer.startTime;
+                                        const minutes = Math.floor(duration / 60000);
+                                        const seconds = Math.floor((duration % 60000) / 1000);
+
+                                        return (
+                                            <>
                                                 <span className="text-white text-xs whitespace-nowrap">
                                                     {project && (
                                                         <>
@@ -5097,28 +5189,16 @@
                                                         {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
                                                     </span>
                                                 </span>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-0.5">
-                                    {/* タイマー停止ボタン（アイコン群の一番左） */}
-                                    {(() => {
-                                        const activeTimerEntries = Object.entries(activeTimers);
-                                        if (activeTimerEntries.length === 0) return null;
-
-                                        const [taskId] = activeTimerEntries[0];
-                                        return (
-                                            <button
-                                                onClick={() => toggleTimer(taskId)}
-                                                className="p-2 flex items-center justify-center text-white font-normal transition-all duration-300 gradient-red hover:shadow-lg pulse-animation w-5 h-5 rounded-full flex-shrink-0 text-xs mr-2"
-                                                title="タイマー停止"
-                                            >
-                                                <span style={{ transform: 'translateX(0.2px)' }}>
-                                                    ■
-                                                </span>
-                                            </button>
+                                                <button
+                                                    onClick={() => toggleTimer(taskId)}
+                                                    className="p-2 flex items-center justify-center button-text-white font-normal transition-all duration-300 gradient-red hover:shadow-lg pulse-animation w-5 h-5 rounded-full flex-shrink-0 text-xs ml-1.5 mr-2"
+                                                    title="タイマー停止"
+                                                >
+                                                    <span className="button-text-white" style={{ transform: 'translateX(0.2px)' }}>
+                                                        ■
+                                                    </span>
+                                                </button>
+                                            </>
                                         );
                                     })()}
 
@@ -5466,7 +5546,7 @@
                                                                             <div className="flex flex-wrap gap-2 mt-1">
                                                                                 {company.createdByName && (
                                                                                     <span
-                                                                                        className="mobile-text-xs text-white font-bold px-2 py-1 rounded-full"
+                                                                                        className="mobile-text-xs badge-text-white font-bold px-2 py-1 rounded-full"
                                                                                         style={{ background: getUserIconColor(company.createdBy) }}
                                                                                     >
                                                                                         {company.createdByName}
@@ -5499,7 +5579,7 @@
                                                                 )}
 
                                                                 {/* 区切りライン */}
-                                                                <div className="absolute left-0 right-0 border-t border-gray-600" style={{ top: '38px' }}></div>
+                                                                <div className="absolute left-0 right-0 project-separator-line" style={{ top: '38px' }}></div>
                                                             </div>
 
                                                             {/* 会社統計 */}
@@ -5590,7 +5670,7 @@
                                                                                     )}
                                                                                 </div>
                                                                                 {/* 区切りライン */}
-                                                                                <div className="mb-2 -mx-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}></div>
+                                                                                <div className="mb-2 -mx-3 task-separator-line"></div>
                                                                                 <div className="space-y-1">
                                                                                     <div className="font-bold text-white mobile-text-xs mt-1">
                                                                                         {template.name}
@@ -5675,7 +5755,7 @@
                                                                                     )}
                                                                                 </div>
                                                                                 {/* 区切りライン */}
-                                                                                <div className="mb-2 -mx-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}></div>
+                                                                                <div className="mb-2 -mx-3 task-separator-line"></div>
                                                                                 <div className="space-y-1">
                                                                                     <div className="font-bold text-white mobile-text-xs mt-1">
                                                                                         {wiring.name}
@@ -5832,7 +5912,7 @@
                                                                                     )}
                                                                                 </div>
                                                                                 {/* 区切りライン */}
-                                                                                <div className="mb-2 -mx-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}></div>
+                                                                                <div className="mb-2 -mx-3 task-separator-line"></div>
                                                                                 <div className="space-y-1">
                                                                                     <div className="font-bold text-white mobile-text-xs mt-1">
                                                                                         {checklist.name}
@@ -10620,14 +10700,14 @@
                                                                             </div>
                                                                         )}
                                                                         <div className="flex flex-wrap gap-2 mt-1">
-                                                                            <span className={`mobile-text-xs text-white px-2 py-1 rounded-full font-bold ${project.status === '完了'
+                                                                            <span className={`mobile-text-xs badge-text-white px-2 py-1 rounded-full font-bold ${project.status === '完了'
                                                                                 ? 'bg-green-600 bg-opacity-60'
                                                                                 : 'bg-blue-600 bg-opacity-60'
                                                                                 }`}>
                                                                                 {project.status}
                                                                             </span>
                                                                             {project.deadline && (
-                                                                                <span className={`mobile-text-xs text-white px-2 py-1 rounded-full font-bold ${project.status === '完了'
+                                                                                <span className={`mobile-text-xs badge-text-white px-2 py-1 rounded-full font-bold ${project.status === '完了'
                                                                                     ? 'bg-green-600 bg-opacity-60'
                                                                                     : 'bg-blue-600 bg-opacity-60'
                                                                                     }`}>
@@ -10643,7 +10723,7 @@
                                                                             )}
                                                                             {project.createdByName && (
                                                                                 <span
-                                                                                    className="mobile-text-xs text-white font-bold px-2 py-1 rounded-full"
+                                                                                    className="mobile-text-xs badge-text-white font-bold px-2 py-1 rounded-full"
                                                                                     style={{ background: getUserIconColor(project.createdBy) }}
                                                                                 >
                                                                                     {project.createdByName}
@@ -10708,7 +10788,7 @@
                                                             )}
 
                                                             {/* 区切りライン */}
-                                                            <div className="absolute left-0 right-0 border-t border-gray-600" style={{ top: '38px' }}></div>
+                                                            <div className="absolute left-0 right-0 project-separator-line" style={{ top: '38px' }}></div>
                                                         </div>
 
 
@@ -10772,7 +10852,7 @@
                                                                     )}
                                                                 </div>
                                                                 {/* 区切りライン */}
-                                                                <div className="mb-2 -mx-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}></div>
+                                                                <div className="mb-2 -mx-3 task-separator-line"></div>
                                                                 <div className="flex justify-between items-center mobile-text-sm mt-1">
                                                                     <div className={`font-bold ${project.status === '完了' ? 'text-gray-400' : 'text-white'}`}>
                                                                         配線仕様: {projectWirings[project.id].templateName}
@@ -10892,13 +10972,13 @@
                                                                                                 {project.name}
                                                                                             </div>
                                                                                             <div className="flex flex-wrap gap-1">
-                                                                                                <span className={`px-2 py-1 rounded-full mobile-text-xs font-bold ${isCompleted ? 'bg-green-600 bg-opacity-60 text-white' : 'bg-blue-600 bg-opacity-60 text-white'
+                                                                                                <span className={`px-2 py-1 rounded-full mobile-text-xs font-bold ${isCompleted ? 'bg-green-600 bg-opacity-60 badge-text-white' : 'bg-blue-600 bg-opacity-60 badge-text-white'
                                                                                                     }`}>
                                                                                                     {task.status}
                                                                                                 </span>
                                                                                                 {task.createdByName && (
                                                                                                     <span
-                                                                                                        className="mobile-text-xs text-white font-bold px-2 py-1 rounded-full"
+                                                                                                        className="mobile-text-xs badge-text-white font-bold px-2 py-1 rounded-full"
                                                                                                         style={{ background: getUserIconColor(task.createdBy) }}
                                                                                                     >
                                                                                                         {task.createdByName}
@@ -10935,18 +11015,18 @@
                                                                                     )}
                                                                                     <button
                                                                                         onClick={() => toggleTimer(task.id)}
-                                                                                        className={`flex items-center justify-center text-white font-normal transition-all duration-300 w-5 h-5 rounded-full flex-shrink-0 text-xs ${isTimerActive
+                                                                                        className={`flex items-center justify-center button-text-white font-normal transition-all duration-300 w-5 h-5 rounded-full flex-shrink-0 text-xs ${isTimerActive
                                                                                             ? 'gradient-red hover:shadow-lg pulse-animation'
                                                                                             : 'gradient-button hover:shadow-lg'
                                                                                             }`}
                                                                                     >
-                                                                                        <span style={{ transform: isTimerActive ? 'translateX(0.2px)' : 'translate(0.5px, 0.3px)' }}>
+                                                                                        <span className="button-text-white" style={{ transform: isTimerActive ? 'translateX(0.2px)' : 'translate(0.5px, 0.3px)' }}>
                                                                                             {isTimerActive ? '■' : '▶'}
                                                                                         </span>
                                                                                     </button>
                                                                                     <button
                                                                                         onClick={() => openHoursInputModal(task)}
-                                                                                        className="flex items-center justify-center text-white font-normal transition-all duration-300 gradient-button hover:shadow-lg w-5 h-5 rounded-full flex-shrink-0 text-xs"
+                                                                                        className="flex items-center justify-center button-text-white font-normal transition-all duration-300 gradient-button hover:shadow-lg w-5 h-5 rounded-full flex-shrink-0 text-xs"
                                                                                     >
                                                                                         <svg
                                                                                             width="10"
@@ -10965,7 +11045,7 @@
                                                                             )}
 
                                                                             {/* 区切りライン */}
-                                                                            <div className="absolute left-0 right-0" style={{ top: '38px', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}></div>
+                                                                            <div className="absolute left-0 right-0 task-separator-line" style={{ top: '38px' }}></div>
 
                                                                             {/* タスク統計（モバイル用コンパクト） */}
                                                                             <div className="grid grid-cols-3 gap-2 mobile-text-xs text-center mb-2">
@@ -11037,7 +11117,7 @@
                                                                                             )}
                                                                                         </div>
                                                                                         {/* 区切りライン */}
-                                                                                        <div className="mb-2 -mx-3" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}></div>
+                                                                                        <div className="mb-2 -mx-3 task-separator-line"></div>
                                                                                         <div className={`flex justify-between items-center mobile-text-sm mt-1`}>
                                                                                             <div className={`font-bold ${isCompleted ? 'text-gray-400' : 'text-white'}`}>
                                                                                                 検査リスト: {checklist.templateName || 'カスタム'}
@@ -11402,7 +11482,7 @@
                                                                     )}
                                                                     {project.createdByName && (
                                                                         <span
-                                                                            className="mt-1 whitespace-nowrap overflow-hidden text-white font-bold px-2 py-1 rounded-full"
+                                                                            className="mt-1 whitespace-nowrap overflow-hidden badge-text-white font-bold px-2 py-1 rounded-full"
                                                                             style={{
                                                                                 fontSize: '8px',
                                                                                 display: 'inline-block',
@@ -11470,11 +11550,10 @@
                                                             {allDays.map((day, dayIndex) => (
                                                                 <div
                                                                     key={dayIndex}
-                                                                    className="absolute top-0 bottom-0"
+                                                                    className="absolute top-0 bottom-0 gantt-vertical-line"
                                                                     style={{
                                                                         left: `${dayIndex * 22}px`,
                                                                         width: '22px',
-                                                                        borderLeft: '1px solid rgba(255, 255, 255, 0.05)',
                                                                         background: day.isToday ? 'linear-gradient(180deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15))' :
                                                                             day.isHoliday || day.isSunday ? 'rgba(239, 68, 68, 0.05)' :
                                                                                 day.isSaturday ? 'rgba(59, 130, 246, 0.05)' :
@@ -11701,7 +11780,7 @@
                                                                     {project.createdByName && (
                                                                         <div>
                                                                             <span
-                                                                                className="text-white font-bold px-2 py-1 rounded-full"
+                                                                                className="badge-text-white font-bold px-2 py-1 rounded-full"
                                                                                 style={{
                                                                                     fontSize: '8px',
                                                                                     display: 'inline-block',
@@ -11967,10 +12046,10 @@
                                                                 }
                                                             }}
                                                         >
-                                                            <div className={`font-bold ${!isToday ? (dayOfWeek === 0 || isHoliday ? 'text-red-300' : dayOfWeek === 6 ? 'text-blue-300' : 'text-white') : 'text-white'}`}>
+                                                            <div className={`font-bold ${!isToday ? (dayOfWeek === 0 || isHoliday ? 'text-red-300' : dayOfWeek === 6 ? 'text-blue-300' : 'text-white') : 'button-text-white'}`}>
                                                                 {current.getDate()}
                                                             </div>
-                                                            <div className={`mobile-text-xs h-4 ${isToday ? 'text-white' : 'text-gray-300'}`}>
+                                                            <div className={`mobile-text-xs h-4 ${isToday ? 'button-text-white' : 'text-gray-300'}`}>
                                                                 {dayHours > 0 ? `${dayHours.toFixed(1)}h` : ''}
                                                             </div>
                                                         </div>
@@ -12275,7 +12354,7 @@
                                                     value={deleteConfirm.inputName}
                                                     onChange={(e) => setDeleteConfirm({ ...deleteConfirm, inputName: e.target.value })}
                                                     placeholder="削除対象の名前を入力してください"
-                                                    className="w-full px-3 py-2 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:border-yellow-500 focus:outline-none text-sm"
+                                                    className="w-full px-3 py-2 bg-gray-700 bg-opacity-50 border border-gray-600 rounded-lg text-white placeholder-gray-300 focus:border-yellow-500 focus:outline-none text-sm"
                                                 />
                                             </div>
 
@@ -12387,7 +12466,7 @@
                                                                     {item.firstCheck && item.firstCheckByName && (
                                                                         <div className="mobile-text-xs text-gray-400 flex items-center gap-2">
                                                                             <span
-                                                                                className="text-white font-bold px-2 py-1 rounded-full"
+                                                                                className="badge-text-white font-bold px-2 py-1 rounded-full"
                                                                                 style={{
                                                                                     fontSize: '8px',
                                                                                     background: getUserIconColor(item.firstCheckBy)
@@ -12426,7 +12505,7 @@
                                                                         {item.secondCheck && item.secondCheckByName && (
                                                                             <div className="mobile-text-xs text-gray-400 flex items-center gap-2">
                                                                                 <span
-                                                                                    className="text-white font-bold px-2 py-1 rounded-full"
+                                                                                    className="badge-text-white font-bold px-2 py-1 rounded-full"
                                                                                     style={{
                                                                                         fontSize: '8px',
                                                                                         background: getUserIconColor(item.secondCheckBy)
@@ -14204,88 +14283,86 @@
                                         </h3>
                                     </div>
 
-                                    <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-                                        {dailyHoursSessions.length === 0 ? (
-                                            <div className="text-center text-gray-400 py-8 mobile-text-sm">
-                                                この日に記録された工数はありません
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3">
-                                                {dailyHoursSessions.map((session, index) => {
-                                                    const project = projects.find(p => p.id === session.projectId);
-                                                    const task = tasks.find(t => t.id === session.taskId);
-                                                    const company = companies.find(c => c.id === project?.companyId);
+                                    {dailyHoursSessions.length === 0 ? (
+                                        <div className="text-center text-gray-400 py-8 mobile-text-sm">
+                                            この日に記録された工数はありません
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {dailyHoursSessions.map((session, index) => {
+                                                const project = projects.find(p => p.id === session.projectId);
+                                                const task = tasks.find(t => t.id === session.taskId);
+                                                const company = companies.find(c => c.id === project?.companyId);
 
 
-                                                    return (
-                                                        <div key={index} className="glass-card-dark p-3 rounded-xl mobile-compact-card">
-                                                            <div className="flex justify-between items-start mb-2">
-                                                                <div className="flex-1 pr-3">
-                                                                    <h4 className="text-white font-bold mobile-text-sm truncate">
-                                                                        {project?.name || session.projectName || '不明なプロジェクト'}
-                                                                    </h4>
-                                                                    <p className="text-purple-300 mobile-text-xs truncate">
-                                                                        {company?.name || project?.companyName || session.companyName || project?.company || '会社名不明'}
-                                                                    </p>
-                                                                    <p className="text-gray-300 mobile-text-xs mt-0.5 -mb-2 truncate">
-                                                                        {task?.name || session.taskName || '不明な工程'}
-                                                                    </p>
+                                                return (
+                                                    <div key={index} className="glass-card-dark p-3 rounded-xl">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="flex-1 pr-3">
+                                                                <h4 className="text-white font-bold mobile-text-sm truncate">
+                                                                    {project?.name || session.projectName || '不明なプロジェクト'}
+                                                                </h4>
+                                                                <p className="text-purple-300 mobile-text-xs truncate">
+                                                                    {company?.name || project?.companyName || session.companyName || project?.company || '会社名不明'}
+                                                                </p>
+                                                                <p className="text-gray-300 mobile-text-xs mt-0.5 -mb-2 truncate">
+                                                                    {task?.name || session.taskName || '不明な工程'}
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right flex-shrink-0">
+                                                                <div className="text-white font-bold mobile-text-sm">
+                                                                    {parseFloat(session.hours).toFixed(1)}h
                                                                 </div>
-                                                                <div className="text-right flex-shrink-0">
-                                                                    <div className="text-white font-bold mobile-text-sm">
-                                                                        {parseFloat(session.hours).toFixed(1)}h
-                                                                    </div>
-                                                                    <div className="text-gray-400 mobile-text-xs">
-                                                                        {(() => {
-                                                                            const timestamp = session.updatedAt || session.createdAt;
-                                                                            if (!timestamp) return '時刻不明';
+                                                                <div className="text-gray-400 mobile-text-xs">
+                                                                    {(() => {
+                                                                        const timestamp = session.updatedAt || session.createdAt;
+                                                                        if (!timestamp) return '時刻不明';
 
-                                                                            try {
-                                                                                let date;
-                                                                                if (typeof timestamp.toDate === 'function') {
-                                                                                    date = timestamp.toDate();
-                                                                                } else {
-                                                                                    date = new Date(timestamp);
-                                                                                }
+                                                                        try {
+                                                                            let date;
+                                                                            if (typeof timestamp.toDate === 'function') {
+                                                                                date = timestamp.toDate();
+                                                                            } else {
+                                                                                date = new Date(timestamp);
+                                                                            }
 
-                                                                                // 有効な日付かチェック
-                                                                                if (isNaN(date.getTime())) {
-                                                                                    return '時刻不明';
-                                                                                }
-
-                                                                                return date.toLocaleTimeString('ja-JP', {
-                                                                                    hour: '2-digit',
-                                                                                    minute: '2-digit'
-                                                                                });
-                                                                            } catch (error) {
-                                                                                console.warn('日付変換エラー:', error, timestamp);
+                                                                            // 有効な日付かチェック
+                                                                            if (isNaN(date.getTime())) {
                                                                                 return '時刻不明';
                                                                             }
-                                                                        })()}
-                                                                    </div>
+
+                                                                            return date.toLocaleTimeString('ja-JP', {
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit'
+                                                                            });
+                                                                        } catch (error) {
+                                                                            console.warn('日付変換エラー:', error, timestamp);
+                                                                            return '時刻不明';
+                                                                        }
+                                                                    })()}
                                                                 </div>
                                                             </div>
-                                                            {session.memo && (
-                                                                <div className="mt-2 p-2 bg-black bg-opacity-20 rounded mobile-text-xs text-gray-300">
-                                                                    {session.memo}
-                                                                </div>
-                                                            )}
                                                         </div>
-                                                    );
-                                                })}
-
-                                                {/* 合計時間 */}
-                                                <div className="mt-4 p-3 glass-card rounded-xl mobile-compact-card">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-white font-bold mobile-text-sm">合計時間</span>
-                                                        <span className="text-white font-bold mobile-text-sm">
-                                                            {dailyHoursSessions.reduce((total, session) => total + session.hours, 0).toFixed(1)}h
-                                                        </span>
+                                                        {session.memo && (
+                                                            <div className="mt-2 p-2 bg-black bg-opacity-20 rounded mobile-text-xs text-gray-300">
+                                                                {session.memo}
+                                                            </div>
+                                                        )}
                                                     </div>
+                                                );
+                                            })}
+
+                                            {/* 合計時間 */}
+                                            <div className="mt-4 p-3 glass-card-dark rounded-xl mobile-compact-card">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-white font-bold mobile-text-sm">合計時間</span>
+                                                    <span className="text-white font-bold mobile-text-sm">
+                                                        {dailyHoursSessions.reduce((total, session) => total + session.hours, 0).toFixed(1)}h
+                                                    </span>
                                                 </div>
                                             </div>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
 
                                     {/* 閉じるボタン */}
                                     <div className="mt-6 mb-1.5">
