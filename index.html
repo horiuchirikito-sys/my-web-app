@@ -384,44 +384,79 @@
         }
 
         .glass-card {
-            background: var(--glass-bg);
+            background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 8px 32px 0 var(--glass-shadow);
-            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
         }
 
         .glass-card-dark {
-            background: var(--glass-dark-bg);
+            background: rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-dark-border);
-            box-shadow: 0 8px 32px 0 var(--glass-dark-shadow);
-            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        /* ライトモード時のglass-card */
+        [data-theme="light"] .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .glass-card-dark {
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
         }
 
         .dark-input {
-            background: var(--glass-dark-bg);
-            border: 1px solid var(--glass-border);
-            color: var(--text-primary);
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
         }
 
         .dark-input::placeholder {
-            color: var(--text-muted);
+            color: rgba(255, 255, 255, 0.5);
         }
 
         /* selectのオプション部分を黒くする */
         .dark-input option {
-            background: var(--solid-bg-1);
-            color: var(--text-primary);
+            background: #1a1a1a;
+            color: white;
             border: none;
         }
 
         .dark-input option:hover {
-            background: var(--solid-bg-2);
+            background: #2a2a2a;
         }
 
         .dark-input option:checked {
-            background: var(--solid-bg-3);
+            background: #3a3a3a;
+        }
+
+        /* ライトモード時のdark-input */
+        [data-theme="light"] .dark-input {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            color: #1e293b;
+        }
+
+        [data-theme="light"] .dark-input::placeholder {
+            color: #94a3b8;
+        }
+
+        [data-theme="light"] .dark-input option {
+            background: #ffffff;
+            color: #1e293b;
+        }
+
+        [data-theme="light"] .dark-input option:hover {
+            background: #f1f5f9;
+        }
+
+        [data-theme="light"] .dark-input option:checked {
+            background: #e2e8f0;
         }
 
         /* 既存のselect.dark-inputスタイルを削除して、以下に置き換え */
@@ -1200,50 +1235,25 @@
             background-image: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%) !important;
         }
 
-        /* TailwindCSSの具体的なクラスを上書き */
-        .bg-gray-900,
-        .bg-black,
-        .bg-gray-800 {
-            background: inherit !important;
+        /* ライトモード時のみTailwindの背景色クラスを上書き */
+        [data-theme="light"] .bg-gray-900,
+        [data-theme="light"] .bg-black,
+        [data-theme="light"] .bg-gray-800 {
+            background: rgba(255, 255, 255, 0.8) !important;
         }
 
-        /* 🔥 完全リセット + 強制適用 */
-        * {
-            box-sizing: border-box;
+        [data-theme="light"] .bg-gray-800.bg-opacity-50 {
+            background: rgba(255, 255, 255, 0.9) !important;
         }
 
-        html {
-            margin: 0 !important;
-            padding: 0 !important;
-            height: 100% !important;
-            width: 100% !important;
+        [data-theme="light"] .bg-gray-900.bg-opacity-95 {
+            background: rgba(255, 255, 255, 0.95) !important;
         }
 
-        body {
-            margin: 0 !important;
-            padding: 0 !important;
-            height: 100% !important;
-            width: 100% !important;
-            min-height: 100vh !important;
+        [data-theme="light"] .border-gray-600 {
+            border-color: rgba(0, 0, 0, 0.2) !important;
         }
 
-        /* ダークモード（デフォルト） */
-        html,
-        body {
-            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #000000 100%) !important;
-        }
-
-        /* ライトモード */
-        [data-theme="light"] {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #ffffff 100%) !important;
-        }
-
-        /* rootのdivでも背景を制御 */
-        #root {
-            min-height: 100vh !important;
-            width: 100% !important;
-            background: transparent !important;
-        }
     </style>
 
     <link rel="manifest" href="manifest.json">
@@ -5354,7 +5364,7 @@
                             </div>
                         </header>
 
-                        <div className="fixed bottom-0 left-0 right-0 z-50 backdrop-filter blur-sm border-t rounded-t-2xl" style={{ backgroundColor: 'var(--solid-bg-1)', opacity: '0.95', borderColor: 'var(--glass-border)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+                        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-95 backdrop-filter blur-sm border-t border-gray-600 rounded-t-2xl" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
                             <div className="flex px-2 py-1.5 pb-5">
                                 <button
                                     onClick={() => setActiveTab('tasks')}
@@ -6024,7 +6034,7 @@
                                                 </button>
                                                 <button
                                                     onClick={() => setShowCompanyForm(false)}
-                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                                 >
                                                     キャンセル
                                                 </button>
@@ -6067,7 +6077,7 @@
                                         </button>
                                         <button
                                             onClick={() => setShowEditCompanyForm(false)}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -6373,7 +6383,7 @@
                                                     categories: [{ name: '', items: [{ name: '', description: '' }] }]
                                                 });
                                             }}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -6576,7 +6586,7 @@
                                         </button>
                                         <button
                                             onClick={cancelTemplateEdit}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -9380,7 +9390,7 @@
                                                 setEditingWiring(null);
                                                 resetWiringForm();
                                             }}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -9801,7 +9811,7 @@
                                                         resetNewProjectForm(); // 追加
                                                         setShowNewProjectForm(false);
                                                     }}
-                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                                 >
                                                     キャンセル
                                                 </button>
@@ -9917,7 +9927,7 @@
                                                         resetNewTaskForm(); // 追加
                                                         setShowNewTaskForm(false);
                                                     }}
-                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                                 >
                                                     キャンセル
                                                 </button>
@@ -10259,7 +10269,7 @@
                                                         setShowEditProjectForm(false);
                                                         setCompanyInputMode('select');
                                                     }}
-                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                                 >
                                                     キャンセル
                                                 </button>
@@ -10368,7 +10378,7 @@
                                                 </button>
                                                 <button
                                                     onClick={() => setShowEditTaskForm(false)}
-                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                                 >
                                                     キャンセル
                                                 </button>
@@ -10508,7 +10518,7 @@
                                             <div className="mt-6 mb-1.5">
                                                 <button
                                                     onClick={() => setShowHoursDetail(false)}
-                                                    className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                                    className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                                 >
                                                     閉じる
                                                 </button>
@@ -10685,7 +10695,7 @@
                                                         <div className="mt-6 mb-1.5">
                                                             <button
                                                                 onClick={() => setShowProjectDetail(false)}
-                                                                className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                                                className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                                             >
                                                                 閉じる
                                                             </button>
@@ -12590,7 +12600,7 @@
                                     <div className="mt-6 mb-1.5">
                                         <button
                                             onClick={() => setShowChecklistModal(false)}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             閉じる
                                         </button>
@@ -12906,7 +12916,7 @@
                                                 setShowEditChecklistModal(false);
                                                 setEditingProjectChecklist(null); // nullに設定して完全にクリア
                                             }}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -13898,7 +13908,7 @@
                                     <div className="mt-6 mb-1.5">
                                         <button
                                             onClick={() => setShowWiringModal(false)}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             閉じる
                                         </button>
@@ -14060,7 +14070,7 @@
                                         </button>
                                         <button
                                             onClick={() => setShowHoursInputModal(false)}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -14169,7 +14179,7 @@
                                         </button>
                                         <button
                                             onClick={() => setShowUserManagementModal(false)}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -14251,7 +14261,7 @@
                                                 setTempIconColor(userIconColor); // 一時色を元に戻す
                                                 setShowColorPickerModal(false);
                                             }}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             キャンセル
                                         </button>
@@ -14393,7 +14403,7 @@
                                     <div className="mt-6 mb-1.5">
                                         <button
                                             onClick={() => setShowDailyHoursModal(false)}
-                                            className="glass-card-dark px-4 py-3 rounded-xl font-bold transition-all duration-300 text-sm w-full"
+                                            className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
                                         >
                                             閉じる
                                         </button>
