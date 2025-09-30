@@ -95,6 +95,7 @@
 
         /* Tailwindクラスを上書きするための強制スタイル */
         [data-theme="light"] .text-white:not(.gradient-red):not(.gradient-button),
+        [data-theme="light"] .text-gray-200,
         [data-theme="light"] .text-gray-300,
         [data-theme="light"] .text-gray-400 {
             color: var(--text-primary) !important;
@@ -143,6 +144,15 @@
             color: var(--text-primary) !important;
         }
 
+        /* ライトモード時のボタンのアウトライン除去 */
+        [data-theme="light"] button:focus {
+            outline: none !important;
+        }
+
+        [data-theme="light"] button:focus-visible {
+            outline: none !important;
+        }
+
         /* ナビゲーションタブのスタイル */
         [data-theme="light"] .gradient-button.active {
             color: white !important;
@@ -156,7 +166,7 @@
 
         [data-theme="light"] button:not(.gradient-button):hover {
             color: var(--text-primary) !important;
-            background-color: var(--glass-bg) !important;
+            background-color: transparent !important;
         }
 
         /* テーマ切り替えボタンはライトモード時も背景透明を維持 */
@@ -1315,6 +1325,7 @@
                         transition: 'color 0.2s',
                         background: 'transparent',
                         border: 'none',
+                        outline: 'none',
                         cursor: 'pointer',
                         padding: '4px',
                         display: 'inline-flex',
@@ -11828,19 +11839,19 @@
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <div className="text-gray-400 mobile-text-xs">労務費</div>
-                                                                    <div className="font-bold text-gray-200 mobile-text-sm">¥{stats.laborCost.toLocaleString()}</div>
+                                                                    <div className="font-bold text-white mobile-text-sm">¥{stats.laborCost.toLocaleString()}</div>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <div className="text-gray-400 mobile-text-xs">資材費</div>
-                                                                    <div className="font-bold text-gray-200 mobile-text-sm">¥{stats.materialCost.toLocaleString()}</div>
+                                                                    <div className="font-bold text-white mobile-text-sm">¥{stats.materialCost.toLocaleString()}</div>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <div className="text-gray-400 mobile-text-xs">案件金額</div>
-                                                                    <div className="font-bold text-gray-200 mobile-text-sm">¥{stats.amount.toLocaleString()}</div>
+                                                                    <div className="font-bold text-white mobile-text-sm">¥{stats.amount.toLocaleString()}</div>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <div className="text-gray-400 mobile-text-xs">時間単価</div>
-                                                                    <div className="font-bold text-gray-200 mobile-text-sm">
+                                                                    <div className="font-bold text-white mobile-text-sm">
                                                                         {stats.hourlyRate > 0 ? `¥${Math.round(stats.hourlyRate).toLocaleString()}/h` : '-'}
                                                                     </div>
                                                                 </div>
