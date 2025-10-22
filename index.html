@@ -1253,7 +1253,6 @@
         [data-theme="light"] .border-gray-600 {
             border-color: rgba(0, 0, 0, 0.2) !important;
         }
-
     </style>
 
     <link rel="manifest" href="manifest.json">
@@ -1958,6 +1957,12 @@
             const [showDailyHoursModal, setShowDailyHoursModal] = useState(false);
             const [selectedDateForModal, setSelectedDateForModal] = useState('');
             const [dailyHoursSessions, setDailyHoursSessions] = useState([]);
+            const [editingSessionId, setEditingSessionId] = useState(null);
+            const [editingHours, setEditingHours] = useState('');
+            const [showAddHoursForm, setShowAddHoursForm] = useState(false);
+            const [newHoursProjectId, setNewHoursProjectId] = useState('');
+            const [newHoursTaskId, setNewHoursTaskId] = useState('');
+            const [newHours, setNewHours] = useState('');
 
             // 作業履歴フィルター用の状態
             const [workHistoryFilter, setWorkHistoryFilter] = useState('today'); // 'all', 'today', 'thisweek', 'thismonth', 'lastmonth'
@@ -3737,7 +3742,131 @@
                 setSelectedDateForModal(dateStr);
                 setDailyHoursSessions(sessionsForDate);
                 setShowDailyHoursModal(true);
+                setEditingSessionId(null);
+                setEditingHours('');
+                setShowAddHoursForm(false);
+                setNewHoursProjectId('');
+                setNewHoursTaskId('');
+                setNewHours('');
             }, [workSessions, user]);
+
+            // 工数編集を開始
+            const startEditingSession = useCallback((sessionId, currentHours) => {
+                setEditingSessionId(sessionId);
+                setEditingHours(currentHours.toString());
+            }, []);
+
+            // 工数編集を更新
+            const updateSessionHours = useCallback(async (sessionId) => {
+                const hours = parseFloat(editingHours);
+                if (isNaN(hours) || hours < 0) {
+                    alert('正しい工数を入力してください');
+                    return;
+                }
+
+                const session = workSessions.find(s => s.id === sessionId);
+                if (!session) return;
+
+                try {
+                    if (hours === 0) {
+                        // 工数が0の場合は削除
+                        await deleteFromFirestore('workSessions', sessionId);
+                        setWorkSessions(prev => prev.filter(s => s.id !== sessionId));
+                        setDailyHoursSessions(prev => prev.filter(s => s.id !== sessionId));
+                    } else {
+                        // 工数を更新
+                        const updatedSession = {
+                            ...session,
+                            hours: hours,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        await saveToFirestore('workSessions', updatedSession, sessionId);
+                        setWorkSessions(prev => prev.map(s =>
+                            s.id === sessionId ? { ...s, hours: hours, updatedAt: new Date() } : s
+                        ));
+                        setDailyHoursSessions(prev => prev.map(s =>
+                            s.id === sessionId ? { ...s, hours: hours, updatedAt: new Date() } : s
+                        ));
+                    }
+                    setEditingSessionId(null);
+                    setEditingHours('');
+                } catch (error) {
+                    console.error('工数更新エラー:', error);
+                    alert('工数の更新に失敗しました');
+                }
+            }, [editingHours, workSessions, saveToFirestore, deleteFromFirestore]);
+
+            // 工数編集をキャンセル
+            const cancelEditingSession = useCallback(() => {
+                setEditingSessionId(null);
+                setEditingHours('');
+            }, []);
+
+            // 新規工数追加フォームを開く
+            const openAddHoursForm = useCallback(() => {
+                setShowAddHoursForm(true);
+                setNewHoursProjectId('');
+                setNewHoursTaskId('');
+                setNewHours('');
+            }, []);
+
+            // 新規工数追加フォームをキャンセル
+            const cancelAddHoursForm = useCallback(() => {
+                setShowAddHoursForm(false);
+                setNewHoursProjectId('');
+                setNewHoursTaskId('');
+                setNewHours('');
+            }, []);
+
+            // 新規工数を保存
+            const saveNewHours = useCallback(async () => {
+                if (!newHoursProjectId || !newHoursTaskId || !selectedDateForModal) {
+                    return;
+                }
+
+                const hours = parseFloat(newHours);
+                if (isNaN(hours) || hours <= 0) {
+                    return;
+                }
+
+                const project = projects.find(p => p.id === newHoursProjectId);
+                const task = tasks.find(t => t.id === newHoursTaskId);
+                const dateObj = new Date(selectedDateForModal);
+
+                try {
+                    const newSession = {
+                        userId: user.uid,
+                        userName: user.displayName || user.email,
+                        taskId: task.id,
+                        taskName: task.title || task.name,
+                        projectId: project.id,
+                        projectName: project.name,
+                        date: firebase.firestore.Timestamp.fromDate(dateObj),
+                        hours: hours,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    const sessionId = await saveToFirestore('workSessions', newSession);
+                    if (sessionId) {
+                        const createdSession = {
+                            ...newSession,
+                            id: sessionId,
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                            date: firebase.firestore.Timestamp.fromDate(dateObj)
+                        };
+                        setWorkSessions(prev => [...prev, createdSession]);
+                        setDailyHoursSessions(prev => [...prev, createdSession]);
+                    }
+
+                    // フォームをリセット
+                    cancelAddHoursForm();
+                } catch (error) {
+                    console.error('工数追加エラー:', error);
+                    alert('工数の追加に失敗しました');
+                }
+            }, [newHoursProjectId, newHoursTaskId, newHours, selectedDateForModal, projects, tasks, user, saveToFirestore, cancelAddHoursForm]);
 
             // 管理者権限確認
             const checkAdminRights = useCallback(async (currentUser) => {
@@ -5340,8 +5469,7 @@
                                     >
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                             <polyline points="23 4 23 10 17 10"></polyline>
-                                            <polyline points="1 20 1 14 7 14"></polyline>
-                                            <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
                                         </svg>
                                     </button>
 
@@ -5435,7 +5563,7 @@
 
                         {/* 会社管理タブ */}
                         {activeTab === 'companies' && (
-                            <div className="space-y-6 md:space-y-8" style={{ minHeight: '100vh' }}>
+                            <div className="space-y-6 md:space-y-8 md:pb-24" style={{ minHeight: '100vh' }}>
                                 <div className="flex flex-row justify-between items-center gap-3 sm:gap-0">
                                     <h2 className="text-lg md:text-2xl font-bold text-white neon-text" style={{ margin: '1px 0' }}>
                                         会社管理
@@ -9401,7 +9529,7 @@
 
                         {/* プロジェクト管理タブ */}
                         {activeTab === 'tasks' && (
-                            <div className="space-y-6 md:space-y-8">
+                            <div className="space-y-6 md:space-y-8 md:pb-24">
                                 <div className="flex flex-row justify-between items-center gap-3 sm:gap-0">
                                     <h2 className="text-lg md:text-2xl font-bold text-white neon-text" style={{ margin: '1px 0' }}>
                                         案件管理
@@ -11200,7 +11328,7 @@
 
                         {/* ガントチャートタブ */}
                         {activeTab === 'gantt' && (
-                            <div className="space-y-6 md:space-y-8">
+                            <div className="space-y-6 md:space-y-8 md:pb-24">
                                 <div className="flex flex-row justify-between items-center gap-3 sm:gap-0">
                                     <h2 className="text-lg md:text-2xl font-bold text-white neon-text" style={{ margin: '1px 0' }}>
                                         工程表
@@ -11671,7 +11799,7 @@
 
                         {/* 分析・レポートタブ */}
                         {activeTab === 'analytics' && (
-                            <div className="space-y-6 md:space-y-8">
+                            <div className="space-y-6 md:space-y-8 md:pb-24">
                                 <div className="flex flex-row justify-between items-center gap-3 sm:gap-0">
                                     <h2 className="text-lg md:text-2xl font-bold text-white neon-text" style={{ margin: '1px 0' }}>
                                         分析
@@ -11886,7 +12014,7 @@
 
                         {/* マイページタブ */}
                         {activeTab === 'mypage' && (
-                            <div className="space-y-6 md:space-y-8">
+                            <div className="space-y-6 md:space-y-8 md:pb-24">
                                 <div className="flex flex-row justify-between items-center gap-3 sm:gap-0">
                                     <h2 className="text-lg md:text-2xl font-bold text-white neon-text" style={{ margin: '1px 0' }}>
                                         ユーザー
@@ -12072,9 +12200,7 @@
                                                             ${isToday ? 'gradient-button' : ''}
                                                         `}
                                                             onClick={() => {
-                                                                if (dayHours > 0) {
-                                                                    openDailyHoursModal(dateStr);
-                                                                }
+                                                                openDailyHoursModal(dateStr);
                                                             }}
                                                         >
                                                             <div className={`font-bold ${!isToday ? (dayOfWeek === 0 || isHoliday ? 'text-red-300' : dayOfWeek === 6 ? 'text-blue-300' : 'text-white') : 'button-text-white'}`}>
@@ -14324,7 +14450,7 @@
                                                 const project = projects.find(p => p.id === session.projectId);
                                                 const task = tasks.find(t => t.id === session.taskId);
                                                 const company = companies.find(c => c.id === project?.companyId);
-
+                                                const isEditing = editingSessionId === session.id;
 
                                                 return (
                                                     <div key={index} className="glass-card-dark p-3 rounded-xl">
@@ -14341,10 +14467,34 @@
                                                                 </p>
                                                             </div>
                                                             <div className="text-right flex-shrink-0">
-                                                                <div className="text-white font-bold mobile-text-sm">
-                                                                    {parseFloat(session.hours).toFixed(1)}h
-                                                                </div>
-                                                                <div className="text-gray-400 mobile-text-xs">
+                                                                {isEditing ? (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <input
+                                                                            type="number"
+                                                                            inputMode="decimal"
+                                                                            step="0.5"
+                                                                            min="0"
+                                                                            value={editingHours}
+                                                                            onChange={(e) => setEditingHours(e.target.value)}
+                                                                            className="dark-input text-xs w-20 text-center"
+                                                                            style={{
+                                                                                padding: '12px 16px',
+                                                                                borderRadius: '12px',
+                                                                                boxShadow: 'none'
+                                                                            }}
+                                                                            autoFocus
+                                                                        />
+                                                                        <span className="text-white text-xs">h</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div
+                                                                        className="text-white font-bold mobile-text-sm cursor-pointer hover:text-purple-300 transition-colors"
+                                                                        onClick={() => startEditingSession(session.id, session.hours)}
+                                                                    >
+                                                                        {parseFloat(session.hours).toFixed(1)}h
+                                                                    </div>
+                                                                )}
+                                                                <div className="text-gray-400 mobile-text-xs mt-1">
                                                                     {(() => {
                                                                         const timestamp = session.updatedAt || session.createdAt;
                                                                         if (!timestamp) return '時刻不明';
@@ -14379,6 +14529,22 @@
                                                                 {session.memo}
                                                             </div>
                                                         )}
+                                                        {isEditing && (
+                                                            <div className="mt-3 flex gap-2">
+                                                                <button
+                                                                    onClick={() => updateSessionHours(session.id)}
+                                                                    className="flex-1 gradient-button text-white px-4 py-3 rounded-xl font-bold text-sm"
+                                                                >
+                                                                    保存
+                                                                </button>
+                                                                <button
+                                                                    onClick={cancelEditingSession}
+                                                                    className="flex-1 glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm"
+                                                                >
+                                                                    キャンセル
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 );
                                             })}
@@ -14395,8 +14561,109 @@
                                         </div>
                                     )}
 
+                                    {/* 新規工数追加ボタン・フォーム */}
+                                    <div className="mt-6">
+                                        {!showAddHoursForm ? (
+                                            <button
+                                                onClick={openAddHoursForm}
+                                                className="gradient-button text-white px-4 py-3 rounded-xl font-bold text-sm w-full"
+                                            >
+                                                工数を追加
+                                            </button>
+                                        ) : (
+                                            <div className="glass-card-dark pt-4 px-4 pb-3 rounded-xl space-y-3">
+                                                <h4 className="text-white font-bold mobile-text-sm mb-3">新規工数追加</h4>
+
+                                                {/* 案件選択 */}
+                                                <div>
+                                                    <label className="text-gray-300 mobile-text-sm block mb-3">案件</label>
+                                                    <div className="custom-select-container">
+                                                        <select
+                                                            value={newHoursProjectId}
+                                                            onChange={(e) => {
+                                                                setNewHoursProjectId(e.target.value);
+                                                                setNewHoursTaskId(''); // 案件変更時にタスクをリセット
+                                                            }}
+                                                            className="custom-select text-xs"
+                                                        >
+                                                            <option value="">案件を選択してください</option>
+                                                            {projects
+                                                                .filter(p => p.status === '進行中')
+                                                                .map(project => (
+                                                                    <option key={project.id} value={project.id}>
+                                                                        {project.name}
+                                                                    </option>
+                                                                ))}
+                                                        </select>
+                                                        <div className="custom-select-arrow"></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* 工程選択 */}
+                                                {newHoursProjectId && (
+                                                    <div>
+                                                        <label className="text-gray-300 mobile-text-sm block mb-3">工程</label>
+                                                        <div className="custom-select-container">
+                                                            <select
+                                                                value={newHoursTaskId}
+                                                                onChange={(e) => setNewHoursTaskId(e.target.value)}
+                                                                className="custom-select text-xs"
+                                                            >
+                                                                <option value="">工程を選択してください</option>
+                                                                {tasks
+                                                                    .filter(t => String(t.projectId) === String(newHoursProjectId))
+                                                                    .map(task => (
+                                                                        <option key={task.id} value={task.id}>
+                                                                            {task.title || task.name}
+                                                                        </option>
+                                                                    ))}
+                                                            </select>
+                                                            <div className="custom-select-arrow"></div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* 工数入力 */}
+                                                <div>
+                                                    <label className="text-gray-300 mobile-text-sm block mb-3">工数（時間）</label>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="decimal"
+                                                        step="0.5"
+                                                        min="0"
+                                                        value={newHours}
+                                                        onChange={(e) => setNewHours(e.target.value)}
+                                                        placeholder="例: 8.0"
+                                                        className="dark-input text-xs w-full"
+                                                        style={{
+                                                            padding: '12px 16px',
+                                                            borderRadius: '12px',
+                                                            boxShadow: 'none'
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                {/* ボタン */}
+                                                <div className="flex gap-2 mt-4">
+                                                    <button
+                                                        onClick={saveNewHours}
+                                                        className="flex-1 gradient-button text-white px-4 py-3 rounded-xl font-bold text-sm"
+                                                    >
+                                                        追加
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelAddHoursForm}
+                                                        className="flex-1 glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm"
+                                                    >
+                                                        キャンセル
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* 閉じるボタン */}
-                                    <div className="mt-6 mb-1.5">
+                                    <div className="mt-2 mb-1.5">
                                         <button
                                             onClick={() => setShowDailyHoursModal(false)}
                                             className="glass-card-dark text-white px-4 py-3 rounded-xl font-bold hover:bg-gray-500 hover:bg-opacity-20 transition-all duration-300 text-sm w-full"
