@@ -12220,59 +12220,117 @@
 
                                     {/* 自分の工数サマリー */}
                                     <div className="glass-card p-3 rounded-2xl">
-                                        <h3 className="text-base font-bold text-white mb-2">自分の工数サマリー</h3>
-                                        <div className="grid grid-cols-3 gap-2 mb-3">
-                                            <div className="text-center">
-                                                <div className="font-bold text-white mobile-text-sm">
-                                                    {workSessions.filter(s => s.userId === user.uid)
-                                                        .reduce((sum, s) => sum + (s.hours || 0), 0).toFixed(1)}h
-                                                </div>
-                                                <div className="text-gray-400 mobile-text-xs">総工数</div>
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="font-bold text-white mobile-text-sm">
-                                                    {new Set(workSessions.filter(s => s.userId === user.uid)
-                                                        .map(s => s.projectId)).size}
-                                                </div>
-                                                <div className="text-gray-400 mobile-text-xs">参加案件数</div>
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="font-bold text-white mobile-text-sm">
-                                                    {new Set(workSessions.filter(s => s.userId === user.uid)
-                                                        .map(s => s.taskId)).size}
-                                                </div>
-                                                <div className="text-gray-400 mobile-text-xs">作業工程数</div>
-                                            </div>
-                                        </div>
+                                        <h3 className="text-base font-bold text-white mb-2">
+                                            {workHistoryFilter === 'today' ? '今日の工数サマリー' :
+                                                workHistoryFilter === 'thisweek' ? '今週の工数サマリー' :
+                                                    workHistoryFilter === 'thismonth' ? '今月の工数サマリー' :
+                                                        workHistoryFilter === 'lastmonth' ? '先月の工数サマリー' : '全体の工数サマリー'}
+                                        </h3>
+                                        {(() => {
+                                            // ユーザーの作業セッションをフィルタリング
+                                            let filteredSessions = workSessions.filter(s => s.userId === user.uid);
 
-                                        {/* プロジェクト別工数 */}
-                                        <div className="space-y-3">
-                                            {projects.filter(p =>
-                                                workSessions.some(s => s.userId === user.uid && s.projectId === p.id)
-                                            ).map(project => {
-                                                const projectHours = workSessions
-                                                    .filter(s => s.userId === user.uid && s.projectId === project.id)
-                                                    .reduce((sum, s) => sum + (s.hours || 0), 0);
+                                            // 日付でのフィルタリング
+                                            if (workHistoryFilter !== 'all') {
+                                                const now = new Date();
+                                                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-                                                return (
-                                                    <div key={project.id} className="glass-card-dark p-3 rounded-lg">
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="flex-1 min-w-0">
-                                                                <h4 className="font-bold text-white mobile-text-sm truncate">{project.name}</h4>
-                                                                {project.company && (
-                                                                    <div className="text-purple-300 mobile-text-xs truncate">{project.company}</div>
-                                                                )}
+                                                const thisWeekStart = new Date(today);
+                                                thisWeekStart.setDate(today.getDate() - today.getDay());
+                                                const thisWeekEnd = new Date(thisWeekStart);
+                                                thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
+                                                thisWeekEnd.setHours(23, 59, 59, 999);
+
+                                                const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                                                const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                                                const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+                                                lastMonthEnd.setHours(23, 59, 59, 999);
+
+                                                filteredSessions = filteredSessions.filter(session => {
+                                                    if (!session.date) return false;
+
+                                                    let sessionDate;
+                                                    if (session.date.toDate) {
+                                                        sessionDate = session.date.toDate();
+                                                    } else {
+                                                        sessionDate = new Date(session.date);
+                                                    }
+
+                                                    const sessionDateOnly = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
+
+                                                    switch (workHistoryFilter) {
+                                                        case 'today':
+                                                            return sessionDateOnly.getTime() === today.getTime();
+                                                        case 'thisweek':
+                                                            return sessionDateOnly >= thisWeekStart && sessionDateOnly <= thisWeekEnd;
+                                                        case 'thismonth':
+                                                            return sessionDateOnly >= thisMonthStart;
+                                                        case 'lastmonth':
+                                                            return sessionDateOnly >= lastMonthStart && sessionDateOnly <= lastMonthEnd;
+                                                        default:
+                                                            return true;
+                                                    }
+                                                });
+                                            }
+
+                                            const totalHours = filteredSessions.reduce((sum, s) => sum + (s.hours || 0), 0);
+                                            const projectCount = new Set(filteredSessions.map(s => s.projectId)).size;
+                                            const taskCount = new Set(filteredSessions.map(s => s.taskId)).size;
+
+                                            return (
+                                                <>
+                                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                                        <div className="text-center">
+                                                            <div className="font-bold text-white mobile-text-sm">
+                                                                {totalHours.toFixed(1)}h
                                                             </div>
-                                                            <div className="text-right ml-2">
-                                                                <span className="font-bold text-white mobile-text-sm">
-                                                                    {projectHours.toFixed(1)}h
-                                                                </span>
+                                                            <div className="text-gray-400 mobile-text-xs">総工数</div>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <div className="font-bold text-white mobile-text-sm">
+                                                                {projectCount}
                                                             </div>
+                                                            <div className="text-gray-400 mobile-text-xs">参加案件数</div>
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <div className="font-bold text-white mobile-text-sm">
+                                                                {taskCount}
+                                                            </div>
+                                                            <div className="text-gray-400 mobile-text-xs">作業工程数</div>
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
+
+                                                    {/* プロジェクト別工数 */}
+                                                    <div className="space-y-3">
+                                                        {projects.filter(p =>
+                                                            filteredSessions.some(s => s.projectId === p.id)
+                                                        ).map(project => {
+                                                            const projectHours = filteredSessions
+                                                                .filter(s => s.projectId === project.id)
+                                                                .reduce((sum, s) => sum + (s.hours || 0), 0);
+
+                                                            return (
+                                                                <div key={project.id} className="glass-card-dark p-3 rounded-lg">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <h4 className="font-bold text-white mobile-text-sm truncate">{project.name}</h4>
+                                                                            {project.company && (
+                                                                                <div className="text-purple-300 mobile-text-xs truncate">{project.company}</div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="text-right ml-2">
+                                                                            <span className="font-bold text-white mobile-text-sm">
+                                                                                {projectHours.toFixed(1)}h
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
 
                                     {/* 自分の作業履歴 */}
