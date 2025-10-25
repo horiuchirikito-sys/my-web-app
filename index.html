@@ -13,6 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-auth-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-storage-compat.min.js"></script>
 
     <script>
         // Babel警告を非表示にする
@@ -1283,6 +1284,7 @@
 
         const auth = firebase.auth();
         const db = firebase.firestore();
+        const storage = firebase.storage();
 
         // Unicodeアイコンの定義
         const icons = {
@@ -4146,7 +4148,7 @@
                         // Firebase Storageにアップロード
                         const timestamp = Date.now();
                         const fileName = `task_${cameraTask.id}_${timestamp}.jpg`;
-                        const storageRef = firebase.storage().ref(`task-photos/${fileName}`);
+                        const storageRef = storage.ref(`task-photos/${fileName}`);
 
                         await storageRef.put(blob);
                         const downloadURL = await storageRef.getDownloadURL();
